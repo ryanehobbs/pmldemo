@@ -1,16 +1,25 @@
-from matplotlib import use
-from perceptron import Perceptron
-use('Agg')
+"""Main"""
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
+from perceptron import Perceptron
 
 
 def load_data(url_loc, header=None):
+    """
+    Use pandas to load CSV data
+    :param url_loc: URL of data source
+    :param header: Additional headers (optional)
+    :return: CSV flat data
+    """
 
     return pd.read_csv(url_loc, header=header)
 
 def plot_data():
+    """
+    Plot the classification data
+    :return: Save or display plot using matplotlib
+    """
 
     # read in the data set into a data frame
     df = load_data(url_loc='https://archive.ics.uci.edu/ml/machine-learning-databases/iris/iris.data')
@@ -37,6 +46,15 @@ def plot_data():
     return X, y
 
 def plot_classifications(X, y):
+    """
+    Plot error chart
+    :param X: {array-like}, shape = [n_samples, n_features]
+            Training vectors, where n_samples is the number of samples and
+            n_features is the number of features.
+    :param y: array-like, shape = [n_samples]
+             Target values.
+    :return: Save or display plot using matplotlib
+    """
 
     ppn = Perceptron(eta=0.1, n_iter=10)
     ppn.fit(X, y)
@@ -48,6 +66,7 @@ def plot_classifications(X, y):
     plt.show()
 
 if __name__ == '__main__':
+    """Main function for console application"""
 
     # plot the data
     X, y = plot_data()
