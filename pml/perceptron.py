@@ -1,9 +1,9 @@
 """Perceptron classifier"""
 
-import neuron
+import classifier
 import numpy as np
 
-class Perceptron(neuron.Neuron):
+class Perceptron(classifier.Classifier):
     """Perceptron classifier.
 
     Attributes
