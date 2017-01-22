@@ -3,10 +3,11 @@ import numpy as np
 
 class Classifier(object):
 
-    eta = None
-    n_iter = None
-    w_ = None
-    errors = None
+    eta = 0
+    n_iter = 0
+    w_ = 0
+    errors = 0
+    cost_ = []
 
     def __init__(self, eta=0.01, n_iter=10):
         """

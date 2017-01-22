@@ -1,7 +1,22 @@
 from matplotlib.colors import ListedColormap
 import matplotlib.pyplot as plt
 import numpy as np
+import numpy.lib.scimath
 import pandas as pd
+
+
+def show_subplots(plots_array):
+
+    ncols=len(plots_array)
+
+    fig, ax = plt.subplots(nrows=1, ncols=ncols, figsize=(8, 4))
+
+    ax[0] = plots_array[0]
+    ax[1] = plots_array[1]
+    ax[2] = plots_array[2]
+
+    plt.tight_layout()
+    plt.show()
 
 def plot_error_chart(X, y, classifier, resolution=0.02, **plot_properties):
     """
@@ -28,9 +43,10 @@ def plot_error_chart(X, y, classifier, resolution=0.02, **plot_properties):
     plt.xlabel(xlabel)
     plt.ylabel(ylabel)
     plt.title(title)
-    plt.show(block=True)
+    plt.show()
+    return plt
 
-def plot_cost_chart(X, y, classifier, resolution=0.02, **plot_properties):
+def plot_cost_chart(X, y, classifier, resolution=0.02, np_mathfunc=None, **plot_properties):
 
     xlabel = plot_properties.get('xlabel', 'xlabel')
     ylabel = plot_properties.get('ylabel', 'ylabel')
@@ -38,8 +54,23 @@ def plot_cost_chart(X, y, classifier, resolution=0.02, **plot_properties):
     marker = plot_properties.get('marker', 'o')
     color = plot_properties.get('color', 'red')
 
+    classifier.fit(X, y)
 
-def plot_decision_regions(X, y, classifier, resolution=0.02):
+
+    if np_mathfunc and np_mathfunc in numpy.lib.scimath.__all__:
+        # get numpy math operation method
+        math_op = getattr(numpy, np_mathfunc)
+        plt.plot(range(1, len(classifier.cost_) + 1), math_op(classifier.cost_), marker=marker)
+    else:
+        plt.plot(range(1, len(classifier.cost_) + 1), classifier.cost_, marker=marker)
+
+    plt.xlabel(xlabel)
+    plt.ylabel(ylabel)
+    plt.title(title)
+    plt.show()
+    return plt
+
+def plot_decision_regions_chart(X, y, classifier, resolution=0.02):
 
     # setup marker generator and color map
     markers = ('s', 'x', 'o', '^', 'v')
@@ -63,7 +94,10 @@ def plot_decision_regions(X, y, classifier, resolution=0.02):
                     alpha=0.8, c=cmap(idx),
                     marker=markers[idx], label=cl)
 
-def plot_binary_data(X, y, classifier_label, **plot_properties):
+    plt.show()
+    return plt
+
+def plot_binary_chart(X, y, **plot_properties):
     """
     Plot the classification data
     :param df:
@@ -79,25 +113,19 @@ def plot_binary_data(X, y, classifier_label, **plot_properties):
     xcolor = plot_properties.get('xcolor', 'red')
     ycolor = plot_properties.get('ycolor', 'blue')
 
-    y = np.where(y == classifier_label, -1, 1)
     range_end, features = X.shape
-    range_start = range_end/features
+    range_start = int(range_end/features)
 
-
-    # plot the data 1st 50 is setosa and
     plt.scatter(X[:range_start, 0], X[:range_start, 1], color=xcolor, marker=xmarker, label=xtitle)
     plt.scatter(X[range_start:range_end, 0], X[range_start:range_end, 1], color=ycolor, marker=ymarker, label=ytitle)
 
     plt.xlabel(xlabel)
     plt.ylabel(ylabel)
     plt.legend(loc='upper left')
-
-    plt.tight_layout()
     plt.show()
+    return plt
 
-    return y
-
-def load_data(url, header=None, **properties):
+def load_binary_classification_data(url, classifier_label, **properties):
     """
     Use pandas to load CSV data
     :param url_loc: URL of data source
@@ -109,11 +137,13 @@ def load_data(url, header=None, **properties):
     columns = properties.get('columns', 0)
     features = properties.get('features', [])
 
-    data_frame = pd.read_csv(url, header=header)
+    data_frame = pd.read_csv(url)
 
     # set two classes setosa and versicolor get first 100 rows and 4 columns of features
     y = data_frame.iloc[0:rows, columns].values
     # extract sepal length and petal length
     X = data_frame.iloc[0:rows, features].values
+
+    y = np.where(y == classifier_label, -1, 1)
 
     return X, y
