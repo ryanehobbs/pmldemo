@@ -1,7 +1,7 @@
 """Main"""
-
-import perceptron
-import plotter
+import models.perceptron as perceptron
+import models.adaline as adaline
+from graphs.binary import BinaryClassificationGraph
 
 def demo_perceptron():
     """
@@ -11,24 +11,28 @@ def demo_perceptron():
 
     # create object class
     classifier = perceptron.Perceptron(eta=0.1, n_iter=10)
-    X, y = plotter.load_binary_classification_data(url='https://archive.ics.uci.edu/ml/machine-learning-databases/iris/iris.data',
-                                                   rows=100,
-                                                   columns=4,
-                                                   features=[0, 2],
-                                                   classifier_label='Iris-setosa')
+    X, y = BinaryClassificationGraph.load_data(source='https://archive.ics.uci.edu/ml/machine-learning-databases/iris/iris.data',
+                             rows=100,
+                             columns=4,
+                             features=[0, 2],
+                             label='Iris-setosa')
+    classifier.graph(X, y, xtitle='setosa', ytitle='versicolor', xlabel='sepal length [cm]', ylabel='petal length [cm]')
 
-    # plot binary classification data
-    plotter.plot_binary_chart(X, y, xtitle='setosa', ytitle='versicolor',
-                              xlabel='sepal length [cm]', ylabel='petal length [cm]')
-    # plot error chart
-    plotter.plot_error_chart(X, y, classifier, xlabel='Epochs', ylabel='Number of misclassifications')
-    # plot decision boundary chart
-    plotter.plot_decision_regions_chart(X, y, classifier)
+def demo_adaline():
 
+    # create object class
+    classifier = adaline.AdalineGD(eta=0.01, n_iter=10)
+    X, y = BinaryClassificationGraph.load_data(source='https://archive.ics.uci.edu/ml/machine-learning-databases/iris/iris.data',
+                                          rows=100,
+                                          columns=4,
+                                          features=[0, 2],
+                                          label='Iris-setosa')
+    classifier.graph(X, y, xtitle='setosa', ytitle='versicolor', xlabel='sepal length [cm]', ylabel='petal length [cm]')
 
 if __name__ == '__main__':
     """Main function for console application"""
 
     # plot classification data
     demo_perceptron()
+    demo_adaline()
 

@@ -1,6 +1,6 @@
 """Perceptron classifier"""
 
-import classifier
+import models.classifier as classifier
 import numpy as np
 
 class Perceptron(classifier.Classifier):
@@ -23,7 +23,7 @@ class Perceptron(classifier.Classifier):
 
         super(Perceptron, self).__init__(eta, n_iter)
 
-    def fit(self, X, y):
+    def fit(self, X, y, n_iter=None, eta=None):
         """
         Fit the training data
         :param X: {array-like}, shape = [n_samples, n_features]
@@ -34,9 +34,10 @@ class Perceptron(classifier.Classifier):
         :return: Perceptron object
         """
 
+        super(Perceptron, self).fit(X, y, n_iter=n_iter, eta=eta)
         # initialize weights to zeros, Shape is a tuple (m#, feature#)
         self.w_ = np.zeros(1 + X.shape[1])  # [0., 0., 0.]
-        self.errors_ = []
+        self.cost_ = []
 
         for _ in range(self.n_iter):
             errors = 0
@@ -51,5 +52,8 @@ class Perceptron(classifier.Classifier):
                 # if not 0 increment error count
                 errors += int(update != 0.0)
             # record convergence errors for each epoch (iteration) this will establish the decision boundary
-            self.errors_.append(errors)
+            self.cost_.append(errors)
+
+        #
+        self.fitted = True
         return self

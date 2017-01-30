@@ -1,4 +1,4 @@
-import classifier
+import models.classifier as classifier
 import numpy as np
 
 class AdalineGD(classifier.Classifier):
@@ -13,7 +13,7 @@ class AdalineGD(classifier.Classifier):
 
         super(AdalineGD, self).__init__(eta, n_iter)
 
-    def fit(self, X, y):
+    def fit(self, X, y, n_iter=None, eta=None):
         """
         Fit the training data
         :param X: {array-like}, shape = [n_samples, n_features]
@@ -24,6 +24,7 @@ class AdalineGD(classifier.Classifier):
         :return: AdalineGC object
         """
 
+        super(AdalineGD, self).fit(X, y, n_iter=n_iter, eta=eta)
         self.w_ = np.zeros(1 + X.shape[1])
         self.cost_ = []
 
@@ -34,4 +35,7 @@ class AdalineGD(classifier.Classifier):
             self.w_[0] += self.eta * errors.sum()
             cost = (errors**2).sum() / 2.0
             self.cost_.append(cost)
+
+        #
+        self.fitted = True
         return self
