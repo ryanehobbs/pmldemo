@@ -1,5 +1,5 @@
 import numpy as np
-from graphs.binary import BinaryClassificationGraph
+from graphs.plotter import Plotter
 import matplotlib.pyplot as plt
 
 class Classifier(object):
@@ -47,7 +47,7 @@ class Classifier(object):
         value = np.where(self.activation(X) >= 0.0, 1, -1)
         return value
 
-    def net_input(self, X):
+    def activation(self, X):
         """
         Calculate input values
         :param X: {array-like}, shape = [n_samples, n_features]
@@ -61,17 +61,9 @@ class Classifier(object):
         value = np.dot(X, self.w_[1:]) + self.w_[0]
         return value
 
-    def activation(self, X):
-        """
+    @staticmethod
+    def graph(X, **properties):
 
-        :param X:
-        :return:
-        """
-
-        return self.net_input(X)
-
-    def graph(self, X, y, **properties):
-
-        graph = BinaryClassificationGraph()
+        graph = Plotter()
         graph.binary_scatterplot(X, **properties)
         plt.show()
