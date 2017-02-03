@@ -31,11 +31,11 @@ class AdalineGD(classifier.Classifier):
         for i in range(self.n_iter):
             output = self.net_input(X)
             errors = (y - output)
-            self.w_[1:] += self.eta * X.T.dot(errors)
-            self.w_[0] += self.eta * errors.sum()
+            self.w_[1:] += self.eta_ * X.T.dot(errors)
+            self.w_[0] += self.eta_ * errors.sum()
             cost = (errors**2).sum() / 2.0
             self.cost_.append(cost)
 
         #
-        self.fitted = True
+        self.fitted_ = True
         return self

@@ -44,7 +44,7 @@ class Perceptron(classifier.Classifier):
             # xi = sample array, target = classification 1 or -1
             for xi, target in zip(X, y):
                 # delta<w> = learn-rate(target class label - predicted class label)
-                update = self.eta * (target - self.predict(xi))
+                update = self.eta_ * (target - self.predict(xi))
                 # multiply delta<w> by values in target array and update weights
                 self.w_[1:] += update * xi
                 # update bias first weight based on delta<w>
@@ -55,5 +55,5 @@ class Perceptron(classifier.Classifier):
             self.cost_.append(errors)
 
         #
-        self.fitted = True
+        self.fitted_ = True
         return self
