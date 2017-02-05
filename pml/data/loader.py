@@ -27,7 +27,8 @@ def load_data(*args, **kwargs):
         if columns == 0: # always set to 1 if 0
             columns = 1
         # set start and end column to isolate just that colume
-        col_start, col_end = abs((df_columns-columns) - 1), columns
+        #col_start, col_end = abs((df_columns-columns) - 1), columns
+        col_start, col_end = abs(1 - columns), abs(0 - df_columns)
     elif isinstance(columns, list) and (len(columns) <= 2 or len(columns) > 0):
         if len(columns) == 1:  # default remaining columns if no end specified
             columns.append(df_columns)

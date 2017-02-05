@@ -1,9 +1,28 @@
 import matplotlib.pyplot as plt
+import random as ran
+from mpl_toolkits.mplot3d import Axes3D
 
 EPOCHS = 'n_iter'
 ALPHA = 'eta'
 
 class Plotter(object):
+
+    def scatterplot(self, X, y):
+        """
+
+        :param X:
+        :param y:
+        :return:
+        """
+
+        cmhot = plt.cm.get_cmap("hot")
+        l = plt.scatter(X, y, c=y, cmap=cmhot)
+        plt.colorbar(l)
+
+    def lineplot(self, X, y):
+
+        plt.cm.get_cmap("hot")
+        plt.plot(X,y)
 
     def binary_scatterplot(self, matrix, **properties):
         """

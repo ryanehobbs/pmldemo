@@ -1,6 +1,49 @@
 import numpy as np
 from graphs.plotter import Plotter
 import matplotlib.pyplot as plt
+from functools import wraps
+
+def sigmoid(z):
+    """
+    Calculate sigmoid function A sigmoid function
+    is a mathematical function having an "S"
+    shaped curve (sigmoid curve). It is capped
+    by -1 and 1 and crosses 0.5.  Typically used
+    as an activation function
+    :param z: z can be a matrix, vector or scalar
+    :return:
+    """
+
+    # create n x 1 vector of zeros
+    g = np.zeros(len(z))
+    # calculate sigmoid
+    g = np.divide(1, 1 + np.exp(np.power(z, 2)))
+    return g
+
+def linear_param(func):
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+
+        # matrix should be first element in args
+        X = args[1]
+        y = args[2]
+        xargs = list(args)
+
+        if isinstance(X, np.matrix):
+            X = np.array(X)
+        size = y.shape[0]
+        # check if we already inserted theta zero
+        theta_set = len(set(X[:, 0]))
+        if theta_set != 1:
+            # create n x 1 vector of 1's
+            x_vector = np.ones((1, size))
+            # create a matrix based on x/y vectors
+            X = np.matrix(np.insert(X, 0, x_vector, axis=1))
+            # insert back into args
+            xargs[1] = X
+        # call wrapped method
+        return func(*xargs, **kwargs)
+    return wrapper
 
 class Classifier(object):
 
@@ -19,49 +62,29 @@ class Classifier(object):
         self.eta_ = eta
         self.n_iter_ = n_iter
 
-    def fit(self, X, y, n_iter=None, eta=None):
+    def predict(self, parameters, theta_params, resolution):
         """
 
-        :param X:
-        :param y:
-        :param n_iter:
-        :param eta:
+        :param parameters:
+        :param theta_params:
+        :param resolution:
         :return:
         """
 
-        if n_iter:
-            self.n_iter_ = n_iter
-        if eta:
-            self.eta_ = eta
+        value = 0
+        if not isinstance(parameters, np.ndarray):
+            parameters = np.array(parameters, dtype='f')
+            parameters = parameters[0:, None]
 
-    def predict(self, X):
-        """
-        Predict class label
-        :param X: {array-like}, shape = [n_samples, n_features]
-            Training vectors, where n_samples is the number of samples and
-            n_features is the number of features.
-        :return: Return class label after unit step
-        """
+        product_vector = (parameters*theta_params)*resolution
 
-        # threshold, if input >= 0.0 choose 1 else -1 label
-        value = np.where(self.activation(X) >= 0.0, 1, -1)
-        return value
+        for i in range(0, len(product_vector)):
+            value = abs(product_vector[i]) - value
 
-    def activation(self, X):
-        """
-        Calculate input values
-        :param X: {array-like}, shape = [n_samples, n_features]
-            Training vectors, where n_samples is the number of samples and
-            n_features is the number of features.
-        :return: Sum of input values
-        """
+        return value[0]
 
-        # perform matrix multiplication
-        # W0X0 + (W1X1 + WmXm)
-        value = np.dot(X, self.w_[1:]) + self.w_[0]
-        return value
-
-    def linear(self, X, y, theta):
+    @linear_param
+    def linear_costcalc(self, X, y, theta=[0,0]):
         """
         Method will perform a linear regression calculation. This
         objective returns a minimized cost function given a linear
@@ -73,88 +96,95 @@ class Classifier(object):
         :return:
         """
 
-        # hypothesis h(x): h_theta(x) = theta^Tx = theta_zero + (theta_one * (x_one))
-        # cost function: J(theta) = 1/2m * sum(h_theta(x^i) - y^i)^2
-
-        # X is a m x n matrix
-        # y is a n x 1 vector
-        # theta is a n x 1 vector
-
-        if not isinstance(theta, list) or theta is None:
-            theta = np.zeros((2, 1))  # set initial theta values to a 1 x n vector
-        else:
+        if not isinstance(theta, np.ndarray):
             theta = np.array(theta, dtype='f')
             theta = theta[0:, None]
 
-        if X.shape[1] != 1:  # can only have 2 cols for single variable linear regression
-            raise Exception("Dimension mismatch (mx2) != ({}). Training data matrix size can only"
-                            "have a minimum of 1 columns.".format(X.shape))
-
-        if theta.shape != (2, 1):
-            raise Exception("Dimension mismatch (2x1) != ({}). Model parameters vector size must "
-                            "be a 2 x 1 vector.".format(theta.shape))
-
         # get length of training samples in vector y
         m = y.shape[0]
-
-        # create n x 1 vector of 1's
-        x_vector = np.ones((1, m))
-
-        #if len(y.shape) <= 1:  # if there are no cols defined define at least n x 1
-        #    # create n x 1 vector of target data
-        #    y = y[0:, None]
-
-        # create a matrix based on x/y vectors
-        X = np.matrix(np.insert(X, 0, x_vector, axis=1))
         # solve h(x) and create n x 1 prediction vector
         predictions = np.dot(X, theta)
         # compute cost function J(theta) calculate mean squared error (MSE) (x - y)^2 how close do we fit
-        return 1/(2*m) * np.sum(np.power(predictions - y, 2))
+        #return 1/(2*m) * np.sum(np.power(predictions - y, 2))
+        return np.sum(np.power(predictions - y, 2)) / (2*m)
 
-    def multi_linear(self, X, y, theta, theta_sz=1):
+    @linear_param
+    def gradient_descent(self, X, y, theta=[0,0], alpha=0.01, iterations=0):
         """
 
         :param X:
         :param y:
         :param theta:
+        :param alpha:
+        :param iterations:
         :return:
         """
 
+        if not isinstance(theta, np.ndarray):
+            theta = np.array(theta, dtype='f')
+            theta = theta[0:, None]
 
-        if not isinstance(theta, list) or theta is None:
-            if theta_sz in (0, None):
-                raise RuntimeError("Initial theta array size must be > 0 and not null")
-            theta = np.zeros(int(theta_sz), 1) # set initial theta values to a 1 x n vector
-        else:
+
+        m = y.shape[0]
+        # create history matrix
+        j_history = np.zeros((iterations, 1))
+
+        for i in range(0, iterations):
+            # FIXME: this may be possible to vectorize this implementation using numpy
+            theta -= (alpha/m) * (X.T * (np.dot(X, theta) - y))
+            j_history[i] = self.linear_costcalc(X, y, theta)
+
+        theta = np.nan_to_num(theta)
+        j_history = np.nan_to_num(j_history)
+
+        return (X, theta, j_history)
+
+    @linear_param
+    def logistic_costcalc(self, X, y, theta=[0,0], regularization=False):
+
+        # X is a m x n Matrix
+        # theta is a n x 1 vector
+        # result is n x 1 vector for h
+
+        if not isinstance(theta, np.ndarray):
             theta = np.array(theta, dtype='f')
             theta = theta[0:, None]
 
         # get length of training samples in vector y
         m = y.shape[0]
-        # create n x 1 vector of 1's
-        x_vector = np.ones((1, m))
-        # create a matrix based ??
-        X = np.matrix(np.insert(X, 0, x_vector, axis=1))
-        # solve h(x) and create n x 1 prediction vector
-        predictions = np.dot(X, theta)
-        # compute cost function J(theta) calculate mean squared error (MSE) (x - y)^2 how close do we fit
-        return np.sum(np.power(predictions - y, 2)) / (2*m)
+        predictions = sigmoid(np.dot(X, theta))
+        # // J = (1/m) * sum(-y .* log(h) - (1-y) .* log(1-h));
+        J = (1/m) * np.sum(np.multiply(-y, np.log(predictions)) - np.multiply(1-y), np.log(1-predictions))
 
-    def logistic(self):
-        pass
-    def multi_logistic(self):
-        pass
-    def standardize(self):
-        pass
-    def normalize(self):
-        pass
+        return J
+
+    def linear_regression(self, X, y, theta=[0,0], **properties):
+        """
+
+        :param X:
+        :param y:
+        :param properties:
+        :return:
+        """
+
+        Xm, theta, j_history = self.gradient_descent(X, y, theta, alpha=0.01, iterations=1500)
+        #Classifier.graph_scatter(X, y)
+        #Classifier.graph_line(X[:,0], np.dot(Xm, theta))
+        #plt.show()
+
+        return (theta, j_history)
 
     @staticmethod
-    def graph(X, **properties):
+    def graph_scatter(X, y, **properties):
 
         graph = Plotter()
-        graph.binary_scatterplot(X, **properties)
-        plt.show()
+        graph.scatterplot(X, y)
+
+    @staticmethod
+    def graph_line(X, y, **properties):
+
+        graph = Plotter()
+        graph.lineplot(X, y)
 
     @property
     def alpha(self, eta):
