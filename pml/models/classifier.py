@@ -3,6 +3,7 @@ from graphs.plotter import Plotter
 import matplotlib.pyplot as plt
 from functools import wraps
 
+
 def sigmoid(z):
     """
     Calculate sigmoid function A sigmoid function
@@ -15,11 +16,10 @@ def sigmoid(z):
     """
 
     # calculate sigmoid curve g(z) = 1/(1+e^-z)
-    #g = np.divide(1, 1 + np.exp(np.power(z, 2)))
     g = np.divide(1, 1 + np.exp(-z))
     return g
 
-def logistic_param(func):
+def linear_param(func):
 
     @wraps(func)
     def wrapper(*args, **kwargs):
@@ -48,31 +48,6 @@ def logistic_param(func):
                 kwargs['theta'] = initial_theta
         return func(*xargs, **kwargs)
     return wrapper
-
-#def linear_param(func):
-#    @wraps(func)
-#    def wrapper(*args, **kwargs):
-
-        # matrix should be first element in args
-#        X = args[1]
-#        y = args[2]
-#        xargs = list(args)
-
-#        if isinstance(X, np.matrix):
-#            X = np.array(X)
-#        size = y.shape[0]
-        # check if we already inserted theta zero
-#        theta_set = len(set(X[:, 0]))
-#        if theta_set != 1:
-            # create n x 1 vector of 1's
-#            x_vector = np.ones((1, size))
-            # create a matrix based on x/y vectors
-#            X = np.matrix(np.insert(X, 0, x_vector, axis=1))
-            # insert back into args
-#            xargs[1] = X
-        # call wrapped method
-#        return func(*xargs, **kwargs)
-#    return wrapper
 
 class Classifier(object):
 
@@ -112,7 +87,7 @@ class Classifier(object):
 
         return value[0]
 
-    @logistic_param
+    @linear_param
     def linear_costcalc(self, X, y, theta=[0,0]):
         """
         Method will perform a linear regression calculation. This
@@ -134,12 +109,15 @@ class Classifier(object):
         # solve h(x) and create n x 1 prediction vector
         predictions = np.dot(X, theta)
         # compute cost function J(theta) calculate mean squared error (MSE) (x - y)^2 how close do we fit
-        #return 1/(2*m) * np.sum(np.power(predictions - y, 2))
-        return np.sum(np.power(predictions - y, 2)) / (2*m)
+        j_cost = 1/(2*m) * np.sum(np.power(predictions - y, 2))
+        return j_cost
+        #return np.sum(np.power(predictions - y, 2)) / (2*m)
 
-    @logistic_param
+    @linear_param
     def gradient_descent(self, X, y, theta=[0,0], alpha=0.01, iterations=0):
         """
+        Gradient descent can be used in both Linear univariate and multivariate
+        calculations
 
         :param X:
         :param y:
@@ -170,8 +148,16 @@ class Classifier(object):
 
         return (X, theta, j_history)
 
-    @logistic_param
+    @linear_param
     def logistic_costcalc(self, X, y, theta=[0,0], lambdaR=None):
+        """
+
+        :param X:
+        :param y:
+        :param theta:
+        :param lambdaR: Apply regularization (usually 1.0)
+        :return:
+        """
 
         # X is a m x n Matrix
         # theta is a n x 1 vector
@@ -185,12 +171,12 @@ class Classifier(object):
         m = y.shape[0]
         # calculate the hypothesis (activation - sigmoid)
         predictions = sigmoid(np.dot(X, theta))
-        J = (1/m) * np.sum(np.multiply(-y, np.log(predictions)) - np.multiply((1-y), np.log(1-predictions)))
+        j_cost = (1/m) * np.sum(np.multiply(-y, np.log(predictions)) - np.multiply((1-y), np.log(1-predictions)))
         if lambdaR:
-            reg_term = (lambdaR/(2*m)) * np.sum(theta[2:])
-            J = J + reg_term
+            reg_term = (lambdaR/(2*m)) * np.sum(np.power(theta[2:], 2))
+            j_cost = j_cost + reg_term
         # return minJ which is the minimized cost calculation
-        return J
+        return j_cost
 
     def linear_regression(self, X, y, theta=[0,0], **properties):
         """
@@ -207,25 +193,3 @@ class Classifier(object):
 
     def logistic_regression(self, X, y, theta=[0,0], **properties):
         pass
-
-    #@staticmethod
-    #def graph_scatter(X, y, **properties):
-
-    #    graph = Plotter()
-    #    graph.scatterplot(X, y)
-
-    #@staticmethod
-    #def graph_line(X, y, **properties):
-
-    #    graph = Plotter()
-    #    graph.lineplot(X, y)
-
-    #@property
-    #def alpha(self, eta):
-
-    #    self.eta_ = eta
-
-    #@property
-    #def epochs(self, n_iter):
-
-    #    self.n_iter_ = n_iter

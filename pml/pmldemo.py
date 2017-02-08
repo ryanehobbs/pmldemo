@@ -3,7 +3,19 @@
 import models.perceptron as perceptron
 import models.adaline as adaline
 import data.loader as data
-import numpy as np
+import mathutils.polynomials as mathutil
+
+
+def demo_logistic_reg():
+
+    X, y = data.load_data(source='samples/sample_data4.txt', columns=3, features=[1,2])
+    classifier = perceptron.Perceptron(eta=0.1, n_iter=10)
+    out = mathutil.map_feature(X[:,0], X[:,1])
+    #print("Map feature return value is: {}".format(out))
+    #cost = classifier.logistic_costcalc(X, y)
+    #X, y = data.load_data(source='samples/sample_data4.txt', columns=3, features=[1,2])
+    #cost_reg = classifier.logistic_costcalc(X, y, lambdaR=1.0)
+    #print('done cost={}'.format(cost))
 
 
 def demo_logistic():
@@ -12,8 +24,9 @@ def demo_logistic():
     classifier = perceptron.Perceptron(eta=0.1, n_iter=10)
     cost = classifier.logistic_costcalc(X, y)
     X, y = data.load_data(source='samples/sample_data4.txt', columns=3, features=[1,2])
-    cost_reg = classifier.logistic_costcalc(X, y, lambdaR=1)
-    print('done cost={}'.format(cost))
+    cost_reg = classifier.logistic_costcalc(X, y)
+    print('done logistic cost={}'.format(cost))
+    print('done logistic w/reg cost={}'.format(cost_reg))
 
 
 def demo_gradientdecent1():
@@ -75,8 +88,9 @@ if __name__ == '__main__':
     # plot classification data
     #demo_perceptron()
     #demo_adaline()
-    demo_linear()
-    demo_multilinear()
-    demo_gradientdecent1()
-    demo_logistic()
+    #demo_linear()
+    #demo_multilinear()
+    #demo_gradientdecent1()
+    #demo_logistic()
+    demo_logistic_reg()
 
