@@ -14,36 +14,65 @@ def sigmoid(z):
     :return:
     """
 
-    # create n x 1 vector of zeros
-    g = np.zeros(len(z))
-    # calculate sigmoid
-    g = np.divide(1, 1 + np.exp(np.power(z, 2)))
+    # calculate sigmoid curve g(z) = 1/(1+e^-z)
+    #g = np.divide(1, 1 + np.exp(np.power(z, 2)))
+    g = np.divide(1, 1 + np.exp(-z))
     return g
 
-def linear_param(func):
+def logistic_param(func):
+
     @wraps(func)
     def wrapper(*args, **kwargs):
 
         # matrix should be first element in args
         X = args[1]
-        y = args[2]
+        if len(args) >= 4:
+            theta = kwargs.get('theta') or args[3]
+        else:
+            theta = kwargs.get('theta')
         xargs = list(args)
 
         if isinstance(X, np.matrix):
             X = np.array(X)
-        size = y.shape[0]
         # check if we already inserted theta zero
         theta_set = len(set(X[:, 0]))
         if theta_set != 1:
-            # create n x 1 vector of 1's
-            x_vector = np.ones((1, size))
-            # create a matrix based on x/y vectors
-            X = np.matrix(np.insert(X, 0, x_vector, axis=1))
-            # insert back into args
+            # get diminesions of matrix
+            m, n = X.shape
+            # insert n x 1 vector of 1's into matrix X
+            X = np.matrix(np.insert(X, 0, np.ones((1, m)), axis=1))
             xargs[1] = X
-        # call wrapped method
+            if not theta:
+                # initialize fitting params (initial theta params)
+                initial_theta = np.zeros((n+1, 1))
+                kwargs['theta'] = initial_theta
         return func(*xargs, **kwargs)
     return wrapper
+
+#def linear_param(func):
+#    @wraps(func)
+#    def wrapper(*args, **kwargs):
+
+        # matrix should be first element in args
+#        X = args[1]
+#        y = args[2]
+#        xargs = list(args)
+
+#        if isinstance(X, np.matrix):
+#            X = np.array(X)
+#        size = y.shape[0]
+        # check if we already inserted theta zero
+#        theta_set = len(set(X[:, 0]))
+#        if theta_set != 1:
+            # create n x 1 vector of 1's
+#            x_vector = np.ones((1, size))
+            # create a matrix based on x/y vectors
+#            X = np.matrix(np.insert(X, 0, x_vector, axis=1))
+            # insert back into args
+#            xargs[1] = X
+        # call wrapped method
+#        return func(*xargs, **kwargs)
+#    return wrapper
 
 class Classifier(object):
 
@@ -83,7 +112,7 @@ class Classifier(object):
 
         return value[0]
 
-    @linear_param
+    @logistic_param
     def linear_costcalc(self, X, y, theta=[0,0]):
         """
         Method will perform a linear regression calculation. This
@@ -108,7 +137,7 @@ class Classifier(object):
         #return 1/(2*m) * np.sum(np.power(predictions - y, 2))
         return np.sum(np.power(predictions - y, 2)) / (2*m)
 
-    @linear_param
+    @logistic_param
     def gradient_descent(self, X, y, theta=[0,0], alpha=0.01, iterations=0):
         """
 
@@ -124,23 +153,25 @@ class Classifier(object):
             theta = np.array(theta, dtype='f')
             theta = theta[0:, None]
 
-
         m = y.shape[0]
         # create history matrix
         j_history = np.zeros((iterations, 1))
 
+        # suppress RuntimeWarning: overflow encountered due to NaN
+        np.seterr(over='ignore')
+
         for i in range(0, iterations):
-            # FIXME: this may be possible to vectorize this implementation using numpy
+            theta = np.nan_to_num(theta)  # set NaN to valid number 0
             theta -= (alpha/m) * (X.T * (np.dot(X, theta) - y))
             j_history[i] = self.linear_costcalc(X, y, theta)
 
-        theta = np.nan_to_num(theta)
+        # set NaN to valid number 0
         j_history = np.nan_to_num(j_history)
 
         return (X, theta, j_history)
 
-    @linear_param
-    def logistic_costcalc(self, X, y, theta=[0,0], regularization=False):
+    @logistic_param
+    def logistic_costcalc(self, X, y, theta=[0,0], lambdaR=None):
 
         # X is a m x n Matrix
         # theta is a n x 1 vector
@@ -152,10 +183,13 @@ class Classifier(object):
 
         # get length of training samples in vector y
         m = y.shape[0]
+        # calculate the hypothesis (activation - sigmoid)
         predictions = sigmoid(np.dot(X, theta))
-        # // J = (1/m) * sum(-y .* log(h) - (1-y) .* log(1-h));
-        J = (1/m) * np.sum(np.multiply(-y, np.log(predictions)) - np.multiply(1-y), np.log(1-predictions))
-
+        J = (1/m) * np.sum(np.multiply(-y, np.log(predictions)) - np.multiply((1-y), np.log(1-predictions)))
+        if lambdaR:
+            reg_term = (lambdaR/(2*m)) * np.sum(theta[2:])
+            J = J + reg_term
+        # return minJ which is the minimized cost calculation
         return J
 
     def linear_regression(self, X, y, theta=[0,0], **properties):
@@ -168,30 +202,30 @@ class Classifier(object):
         """
 
         Xm, theta, j_history = self.gradient_descent(X, y, theta, alpha=0.01, iterations=1500)
-        #Classifier.graph_scatter(X, y)
-        #Classifier.graph_line(X[:,0], np.dot(Xm, theta))
-        #plt.show()
 
         return (theta, j_history)
 
-    @staticmethod
-    def graph_scatter(X, y, **properties):
+    def logistic_regression(self, X, y, theta=[0,0], **properties):
+        pass
 
-        graph = Plotter()
-        graph.scatterplot(X, y)
+    #@staticmethod
+    #def graph_scatter(X, y, **properties):
 
-    @staticmethod
-    def graph_line(X, y, **properties):
+    #    graph = Plotter()
+    #    graph.scatterplot(X, y)
 
-        graph = Plotter()
-        graph.lineplot(X, y)
+    #@staticmethod
+    #def graph_line(X, y, **properties):
 
-    @property
-    def alpha(self, eta):
+    #    graph = Plotter()
+    #    graph.lineplot(X, y)
 
-        self.eta_ = eta
+    #@property
+    #def alpha(self, eta):
 
-    @property
-    def epochs(self, n_iter):
+    #    self.eta_ = eta
 
-        self.n_iter_ = n_iter
+    #@property
+    #def epochs(self, n_iter):
+
+    #    self.n_iter_ = n_iter

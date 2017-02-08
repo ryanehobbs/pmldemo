@@ -10,7 +10,10 @@ def demo_logistic():
 
     X, y = data.load_data(source='samples/sample_data3.txt', columns=3, features=[1,2])
     classifier = perceptron.Perceptron(eta=0.1, n_iter=10)
-    print ("done")
+    cost = classifier.logistic_costcalc(X, y)
+    X, y = data.load_data(source='samples/sample_data4.txt', columns=3, features=[1,2])
+    cost_reg = classifier.logistic_costcalc(X, y, lambdaR=1)
+    print('done cost={}'.format(cost))
 
 
 def demo_gradientdecent1():
@@ -22,17 +25,6 @@ def demo_gradientdecent1():
     print("For a population of 35,000 people, we predict a profit of ${}".format(value))
     value = classifier.predict([1, 7], theta, 10000)
     print("For a population of 70,000 people, we predict a profit of ${}".format(value))
-
-def demo_gradientdecent2():
-
-    X, y = data.load_data(source='samples/sample_data2.txt', columns=3, features=[1,2])
-    classifier = perceptron.Perceptron(eta=0.1, n_iter=10)
-    theta, j_history = classifier.linear_regression(X, y, theta=[0,0,0])
-    #value = classifier.predict([1, 3.5], theta, 10000)
-    #print("For a population of 35,000 people, we predict a profit of ${}".format(value))
-    #value = classifier.predict([1, 7], theta, 10000)
-    #print("For a population of 70,000 people, we predict a profit of ${}".format(value))
-    print('done')
 
 def demo_linear():
 
@@ -83,9 +75,8 @@ if __name__ == '__main__':
     # plot classification data
     #demo_perceptron()
     #demo_adaline()
-    #demo_linear()
-    #demo_multilinear()
-    #demo_gradientdecent1()
-    #demo_gradientdecent2()
+    demo_linear()
+    demo_multilinear()
+    demo_gradientdecent1()
     demo_logistic()
 
