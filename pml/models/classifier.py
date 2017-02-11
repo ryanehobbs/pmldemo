@@ -167,13 +167,21 @@ class Classifier(object):
             theta = np.array(theta, dtype='f')
             theta = theta[0:, None]
 
+        theta = np.zeros((len(X[:,1]), 1))  # FIXME: Temp code
+        #X = np.matrix(X) # FIXME: temp code
+
+
         # get length of training samples in vector y
         m = y.shape[0]
+
+        blah = X * theta
+        blah2 = np.dot(X, theta)
+
         # calculate the hypothesis (activation - sigmoid)
         predictions = sigmoid(np.dot(X, theta))
         j_cost = (1/m) * np.sum(np.multiply(-y, np.log(predictions)) - np.multiply((1-y), np.log(1-predictions)))
         if lambdaR:
-            reg_term = (lambdaR/(2*m)) * np.sum(np.power(theta[2:], 2))
+            reg_term = (lambdaR/(2*m)) * np.sum(np.power(theta[1:], 2))
             j_cost = j_cost + reg_term
         # return minJ which is the minimized cost calculation
         return j_cost

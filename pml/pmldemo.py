@@ -4,18 +4,16 @@ import models.perceptron as perceptron
 import models.adaline as adaline
 import data.loader as data
 import mathutils.polynomials as mathutil
+import preprocessing
+import models.linear as linear
 
 
 def demo_logistic_reg():
 
     X, y = data.load_data(source='samples/sample_data4.txt', columns=3, features=[1,2])
     classifier = perceptron.Perceptron(eta=0.1, n_iter=10)
-    out = mathutil.map_feature(X[:,0], X[:,1])
-    #print("Map feature return value is: {}".format(out))
-    #cost = classifier.logistic_costcalc(X, y)
-    #X, y = data.load_data(source='samples/sample_data4.txt', columns=3, features=[1,2])
-    #cost_reg = classifier.logistic_costcalc(X, y, lambdaR=1.0)
-    #print('done cost={}'.format(cost))
+    X = mathutil.map_feature(X[:,0], X[:,1])
+    cost = classifier.logistic_costcalc(X, y, lambdaR=1)
 
 
 def demo_logistic():
@@ -82,6 +80,24 @@ def demo_adaline():
                                           label='Iris-setosa')
     classifier.graph(X, xtitle='setosa', ytitle='versicolor', xlabel='sepal length [cm]', ylabel='petal length [cm]')
 
+def demo_preprocessing():
+
+    X, y = data.load_data(source='samples/sample_data4.txt', columns=3, features=[1, 2])
+    preprocessor = preprocessing.PolyFeatures(degrees=2)
+    preprocessor.mapfeatures(X)
+    print("done")
+
+def demo_newlinear():
+
+    X, y = data.load_data(source='samples/sample_data.txt', columns=2, features=1)
+    #X, y = data.load_data(source='samples/sample_data2.txt', columns=3, features=[1,2])
+    linear_model = linear.Linear(include_bias=True, iterations=1500)
+    linear_model.fit(X, y)
+    blah = linear_model.predict([1, 3.5])
+    blah2 = linear_model.predict([1, 7])
+    print("done")
+
+
 if __name__ == '__main__':
     """Main function for console application"""
 
@@ -90,7 +106,9 @@ if __name__ == '__main__':
     #demo_adaline()
     #demo_linear()
     #demo_multilinear()
-    #demo_gradientdecent1()
+    demo_gradientdecent1()
     #demo_logistic()
-    demo_logistic_reg()
+    #demo_logistic_reg()
+    demo_preprocessing()
+    demo_newlinear()
 
