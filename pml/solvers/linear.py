@@ -1,6 +1,27 @@
 import numpy as np
 import numbers
 
+def linear_leastsquares(X, y):
+    """
+    Use a closed-form solution to calculate linear regression against the
+    training data. This forumula does not require any feature scaling. It
+    is a very quick way to calculate the minimized costs for a linear regression.
+    Note: Should only be applied to small data sets. Larger data sets should use
+    gradient descent. The normal equation is a very computationally expensive
+    calculation for the processor.
+    :param X:
+    :param y:
+    :return:
+    """
+
+    # linear least squares (Normal Equation) θ = (X.T * X)^−1 * X.T ⃗y .
+    # ensure our training data X type is Matrix before performing calculation
+    X = np.matrix(X)
+    # calculate minimize cost paramateres using (Moore-Penrose) pseudo-inverse
+    theta = np.linalg.pinv(X.T * X) * X.T * y
+
+    return theta
+
 def gradient_descent(X, y, theta=None, alpha=0.01, iterations=1, costfunc=None):
     """
     Perform gradient descent calculation against training data.
@@ -10,13 +31,20 @@ def gradient_descent(X, y, theta=None, alpha=0.01, iterations=1, costfunc=None):
     (or of the approximate gradient) of the function at the current point.
     :param X: array-like Array[n_samples, n_features] Training data
     :param y: np.ndarray Vector[n_samples] Training labels
-    :param theta: array-like Vector[n_features] sample weights <-- these are actually coef weights are the ones
+    :param theta: array-like Vector[n_features] coefficient parameters
     :param alpha: float learning rate parameter. alpha is equal to 1 / C.
     :param iterations: integer number of iterations for the solver.
-    :param costfunc: Optional function pointer that solver can call to calculate min->cost
+    :param costfunc: (Optional) function pointer that solver can call to calculate min->cost
     :return: Tuple (theta, grad) theta contains the minimized cost coeffecient, if cost function
     parameter set, grad will contain the historical costs associated with gradient descent calculation
     """
+
+    # This implementation uses a method known as "batch" gradient descent
+    # where theta is updated on each iteration instead of at the very end.
+    # With each "step" of gradient descent the parameters "theta" move
+    # closer to being optimized to achieve lowest cost.  The formula is
+    # expressed as thetaJ = thetaJ - alpha(1/m) * sum((h_thetaX - y)*(X))
+    # h_thetaX is the linear model h_theta = theta0 + theta1 * X1
 
     # extract the array shape of row samples and column features
     n_samples, n_features = X.shape
@@ -44,11 +72,11 @@ def gradient_descent(X, y, theta=None, alpha=0.01, iterations=1, costfunc=None):
 
     # loop through all iteration samples
     for i in range(0, iterations):
-        theta = np.nan_to_num(theta)  # set NaN to valid number 0
         # calculate gradient descent
         theta -= (alpha/n_samples) * (X.T * (np.dot(X, theta) - y))
         if grad is not None:  # used to check and validate learning rate
             grad[i] = costfunc(X, y, theta)
-            grad = np.nan_to_num(grad)  # set NaN to valid number 0
+    theta = np.nan_to_num(theta)  # set NaN to valid number 0
+    grad = np.nan_to_num(grad)  # set NaN to valid number 0
 
     return theta, grad

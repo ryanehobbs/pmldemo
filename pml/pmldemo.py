@@ -89,12 +89,15 @@ def demo_preprocessing():
 
 def demo_newlinear():
 
-    X, y = data.load_data(source='samples/sample_data.txt', columns=2, features=1)
-    #X, y = data.load_data(source='samples/sample_data2.txt', columns=3, features=[1,2])
-    linear_model = linear.Linear(include_bias=True, iterations=1500)
+    #X, y = data.load_data(source='samples/sample_data.txt', columns=2, features=1)
+    X, y = data.load_data(source='samples/sample_data2.txt', columns=3, features=[1,2])
+    linear_model = linear.Linear(solver='normal', normalize=True, include_bias=True, iterations=50, alpha=0.01)
     linear_model.fit(X, y)
-    blah = linear_model.predict([1, 3.5])
-    blah2 = linear_model.predict([1, 7])
+    #x = linear_model.grad_[499]
+    #blah = linear_model.predict([1, 3.5])
+    blah = linear_model.predict([1, 1650, 3])
+    #blah2 = linear_model.predict([1, 7])
+    blah2 = linear_model.predict([1, 2000, 4])
     print("done")
 
 
@@ -106,7 +109,7 @@ if __name__ == '__main__':
     #demo_adaline()
     #demo_linear()
     #demo_multilinear()
-    demo_gradientdecent1()
+    #demo_gradientdecent1()
     #demo_logistic()
     #demo_logistic_reg()
     demo_preprocessing()
