@@ -21,7 +21,8 @@ class LinearMixin(six.with_metaclass(ABCMeta)):
         :param alpha: Learning rate to use when performing loss calculations
         """
 
-        self.normalize = normalize
+        # normalize only if using gradient descent always default to False
+        self.normalize = normalize if solver != 'normal' else False
         self.include_bias = include_bias
         self.solver = solver
         self.iterations = iterations
@@ -65,14 +66,12 @@ class LinearMixin(six.with_metaclass(ABCMeta)):
             self.theta_ = theta  # use values passed in
 
         if self.normalize:
-
-            # set data type of array correctly
-            X = X.astype(np.float32 if X.dtype == np.int32 else np.float64)
-            # calculate the standard deviation
-            std = np.sqrt(np.sum(np.power(X, 2), axis=0))
-            std[std == 0] = 1
+            self.mu_ = np.mean(X, axis=0)
+            self.sigma_ = np.std(X, axis=0)
+            tf_mu = X - np.kron(np.ones((X.shape[0], 1)), self.mu_)
+            tf_std = np.kron(np.ones((X.shape[0], 1)), self.sigma_)
             # divide feature values by their respective standard deviations
-            X = np.divide(X, std)
+            X = np.divide(tf_mu, tf_std)
 
         # if including bias set first column to ones
         if self.include_bias:
@@ -89,9 +88,45 @@ class LinearMixin(six.with_metaclass(ABCMeta)):
         :return: Array [n_samples] predicted values
         """
 
+        # FIXME: THIS DOES NOT WORK WITH JUST PASSING IN TWO VALUES FOR PREDICTIONS NEEDS FIXING
+
         if not hasattr(self, 'theta_'):
             raise RuntimeError("Instance is currently not fitted")
 
-        # hypothesis in linear model: h_theta(x) = theta_zero + theta_one * x_one
-        return np.dot(X, self.theta_)
+        if type(X) not in (list, np.ndarray, np.matrix):
+            X = [X]
+
+        if isinstance(X, list):
+            X = np.array(X) # FIXME: maybe convert the other way around ndarry -> list ??
+
+        if self.normalize:
+            return self.__predictN(X)
+        else:
+            # hypothesis in linear model: h_theta(x) = theta_zero + theta_one * x_one
+            return np.dot(X, self.theta_)
+
+    def __predictN(self, X):
+        """
+        Normalized prediction
+        :param X:
+        :return:
+        """
+
+        # FIXME: THIS DOES NOT WORK WITH JUST PASSING IN TWO VALUES FOR PREDICTIONS NEEDS FIXING
+        X = np.array(X)
+
+        # get length of mu/sigma and ensure X length equals if not the bias may have been passed in to X
+        if X.shape[0] != self.mu_.shape[0]:
+            raise Exception("To many prediction values pass in")
+
+        return np.dot(np.divide((X-self.mu_), self.sigma_), self.theta_)
+
+        #blah2 = np.divide((X[1:]-self.mu_), self.sigma_)
+        #blah2 = np.insert(blah2, 0, 1, axis=0)  # <-- janky and hacky
+        #blah3 = np.dot(blah2, self.theta_)
+        print("done")
+
+
+
+
 

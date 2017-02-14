@@ -66,7 +66,7 @@ class Linear(LinearMixin):
 
         # check solver type
         if self.solver == 'linear':
-            self.theta_, self.grad_ = ls.gradient_descent(X, y, self.theta_, self.alpha, self.iterations, self._cost_calc)  # calc gradient descent
+            self.theta_, self.grad_ = ls.gradient_descent(X, y, self.theta_, self.alpha, self.iterations)  # calc gradient descent
         elif self.solver == 'normal':
             self.theta_ = ls.linear_leastsquares(X, y)
 

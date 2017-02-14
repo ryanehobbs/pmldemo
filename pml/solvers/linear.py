@@ -46,6 +46,7 @@ def gradient_descent(X, y, theta=None, alpha=0.01, iterations=1, costfunc=None):
     # expressed as thetaJ = thetaJ - alpha(1/m) * sum((h_thetaX - y)*(X))
     # h_thetaX is the linear model h_theta = theta0 + theta1 * X1
 
+    grad = None
     # extract the array shape of row samples and column features
     n_samples, n_features = X.shape
 
