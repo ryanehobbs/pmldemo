@@ -11,7 +11,7 @@ class LinearMixin(six.with_metaclass(ABCMeta)):
     Base class for linear regression models.Implemented as a MixIn
     """
 
-    def __init__(self, normalize=False, include_bias=False, solver="linear", iterations=10, alpha=0.01):
+    def __init__(self, normalize=False, include_bias=True, solver="linear", iterations=10, alpha=0.01):
         """
         Base class for linear model regression calculations
         :param normalize: (Default: False) Scale features in training data if they differ in order of magnitude
@@ -59,9 +59,12 @@ class LinearMixin(six.with_metaclass(ABCMeta)):
         elif not isinstance(theta, np.ndarray) and theta is not None:
             theta = np.array(theta, dtype='f')
 
-        # initialize weights (theta) using supplied or set to zero
+        # initialize parameters (theta) using supplied or set to zero
         if theta is None:  # initialize weights to zero
-            self.theta_ = np.zeros((n_features + 1, 1))
+            if self.include_bias:
+                self.theta_ = np.zeros((n_features + 1, 1))
+            else:
+                self.theta_ = np.zeros((n_features, 1))
         else:
             self.theta_ = theta  # use values passed in
 
@@ -77,6 +80,8 @@ class LinearMixin(six.with_metaclass(ABCMeta)):
         if self.include_bias:
             self.bias_ = np.ones((n_samples, 1))
             X = np.insert(X, 0, self.bias_.T, axis=1)
+            #self.mu_ = np.insert(self.mu_, 0, 1, axis=0)
+            #self.sigma_ = np.insert(self.sigma_, 0, 1, axis=0)
 
         return X, y
 
@@ -88,22 +93,23 @@ class LinearMixin(six.with_metaclass(ABCMeta)):
         :return: Array [n_samples] predicted values
         """
 
-        # FIXME: THIS DOES NOT WORK WITH JUST PASSING IN TWO VALUES FOR PREDICTIONS NEEDS FIXING
+        theta_length = self.theta_.shape[0]
 
         if not hasattr(self, 'theta_'):
             raise RuntimeError("Instance is currently not fitted")
 
-        if type(X) not in (list, np.ndarray, np.matrix):
-            X = [X]
+        X = np.array(X)
 
-        if isinstance(X, list):
-            X = np.array(X) # FIXME: maybe convert the other way around ndarry -> list ??
-
-        if self.normalize:
-            return self.__predictN(X)
+        if self.normalize:  # predict based on mu and sigma values
+            X = self.__predictN(X)
         else:
-            # hypothesis in linear model: h_theta(x) = theta_zero + theta_one * x_one
-            return np.dot(X, self.theta_)
+            if self.include_bias:
+                if len(X.shape) != 2:
+                    # insert col ones again
+                    X = np.insert(X, 0, 1, axis=0)
+
+        # hypothesis in linear model: h_theta(x) = theta_zero + theta_one * x_one
+        return np.dot(X, self.theta_)
 
     def __predictN(self, X):
         """
@@ -112,21 +118,25 @@ class LinearMixin(six.with_metaclass(ABCMeta)):
         :return:
         """
 
-        # FIXME: THIS DOES NOT WORK WITH JUST PASSING IN TWO VALUES FOR PREDICTIONS NEEDS FIXING
-        X = np.array(X)
+        #if X.shape[0] == 47:
+        #    return np.divide((X[0:,]-self.mu_), self.sigma_)
+        #else:  #<-- This works when costcalc is not used AND mu/sigma do not have ones added but this will break when using
+        #       # cost calc in formula
+        #    blah = np.divide((X[1:]-self.mu_), self.sigma_)
+        #    blah2 = np.insert(blah, 0, 1, axis=0)  # <-- janky and hacky
+        #    return blah2
 
-        # get length of mu/sigma and ensure X length equals if not the bias may have been passed in to X
-        if X.shape[0] != self.mu_.shape[0]:
-            raise Exception("To many prediction values pass in")
+        if len(X.shape) != 2:  # 0-dim array
+            X_sub = X-self.mu_
+        else:  # n x 1 dim array
+            X_sub = X[:,1:]-self.mu_
+        X_div = np.divide(X_sub, self.sigma_)
 
-        return np.dot(np.divide((X-self.mu_), self.sigma_), self.theta_)
+        if self.include_bias:
+            if len(X.shape) != 2:
+                # insert col ones again
+                X = np.insert(X_div, 0, 1, axis=0)
+            else:
+                X = np.insert(X_div, 0, 1, axis=1)
 
-        #blah2 = np.divide((X[1:]-self.mu_), self.sigma_)
-        #blah2 = np.insert(blah2, 0, 1, axis=0)  # <-- janky and hacky
-        #blah3 = np.dot(blah2, self.theta_)
-        print("done")
-
-
-
-
-
+        return X

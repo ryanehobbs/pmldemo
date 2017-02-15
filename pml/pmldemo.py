@@ -91,11 +91,11 @@ def demo_newlinear():
 
     #X, y = data.load_data(source='samples/sample_data.txt', columns=2, features=1)
     X, y = data.load_data(source='samples/sample_data2.txt', columns=3, features=[1,2])
-    linear_model = linear.Linear(solver='linear', normalize=True, include_bias=True, iterations=400, alpha=0.01)
+    linear_model = linear.Linear(solver='normal', normalize=False, include_bias=False, iterations=1500, alpha=0.01)
     linear_model.fit(X, y)
-    #blah1 = linear_model.predict([1, 3.5])
+    #blah1 = linear_model.predict([3.5])
     blah2 = linear_model.predict([1650, 3])
-    #blah3 = linear_model.predict([1, 7])
+    #blah3 = linear_model.predict([7])
     blah4 = linear_model.predict([2000, 4])
     print("done")
 

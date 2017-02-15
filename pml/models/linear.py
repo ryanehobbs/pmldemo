@@ -5,7 +5,7 @@ import solvers.linear as ls
 
 class Linear(LinearMixin):
 
-    def __init__(self, normalize=False, include_bias=False, solver='linear', iterations=10, alpha=0.01):
+    def __init__(self, normalize=False, include_bias=True, solver='linear', iterations=10, alpha=0.01):
         """
         Create a linear model class for performing regression analysis
         :param normalize: (Default: False) Scale features in training data if they differ in order of magnitude
@@ -66,7 +66,7 @@ class Linear(LinearMixin):
 
         # check solver type
         if self.solver == 'linear':
-            self.theta_, self.grad_ = ls.gradient_descent(X, y, self.theta_, self.alpha, self.iterations)  # calc gradient descent
+            self.theta_, self.grad_ = ls.gradient_descent(X, y, self.theta_, self.alpha, self.iterations, self._cost_calc)  # calc gradient descent
         elif self.solver == 'normal':
             self.theta_ = ls.linear_leastsquares(X, y)
 
