@@ -87,16 +87,23 @@ def demo_preprocessing():
     preprocessor.mapfeatures(X)
     print("done")
 
+def demo_newmultilinear():
+
+    X, y = data.load_data(source='samples/sample_data2.txt', columns=3, features=[1,2])
+    linear_model = linear.Linear(solver='linear', normalize=True, iterations=50, alpha=0.06)
+    linear_model.fit(X, y)
+    price1 = linear_model.predict([1650, 3])
+    price2 = linear_model.predict([4000, 4])
+    print("done")
+
+
 def demo_newlinear():
 
-    #X, y = data.load_data(source='samples/sample_data.txt', columns=2, features=1)
-    X, y = data.load_data(source='samples/sample_data2.txt', columns=3, features=[1,2])
-    linear_model = linear.Linear(solver='normal', normalize=False, include_bias=False, iterations=1500, alpha=0.01)
+    X, y = data.load_data(source='samples/sample_data.txt', columns=2, features=1)
+    linear_model = linear.Linear(solver='linear', normalize=False, iterations=1500, alpha=0.01)
     linear_model.fit(X, y)
-    #blah1 = linear_model.predict([3.5])
-    blah2 = linear_model.predict([1650, 3])
-    #blah3 = linear_model.predict([7])
-    blah4 = linear_model.predict([2000, 4])
+    price1 = linear_model.predict([3.5])
+    price2 = linear_model.predict([7])
     print("done")
 
 
@@ -111,6 +118,7 @@ if __name__ == '__main__':
     #demo_gradientdecent1()
     #demo_logistic()
     #demo_logistic_reg()
-    demo_preprocessing()
+    #demo_preprocessing()
+    demo_newmultilinear()
     demo_newlinear()
 

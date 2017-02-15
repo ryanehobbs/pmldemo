@@ -3,7 +3,7 @@ import numbers
 import six
 from abc import ABCMeta, abstractmethod
 
-ALPHA_MIN = 0.001
+ALPHA_MIN = 0.0001
 ALPHA_MAX = 10
 
 class LinearMixin(six.with_metaclass(ABCMeta)):
@@ -100,43 +100,36 @@ class LinearMixin(six.with_metaclass(ABCMeta)):
 
         X = np.array(X)
 
-        if self.normalize:  # predict based on mu and sigma values
+        if self.normalize:  # predict based on normalized values
             X = self.__predictN(X)
         else:
             if self.include_bias:
-                if len(X.shape) != 2:
-                    # insert col ones again
+                # if 0-dim array we need to add bias if necessary
+                if len(X.shape) != 2:  # insert col ones on axis 0
                     X = np.insert(X, 0, 1, axis=0)
 
         # hypothesis in linear model: h_theta(x) = theta_zero + theta_one * x_one
-        return np.dot(X, self.theta_)
+        return np.sum(np.dot(X, self.theta_).astype(np.float32))
 
     def __predictN(self, X):
         """
-        Normalized prediction
+        Method that will perform Normalized prediction.  This method assumes you are passing in
+        an array that matches the cound of feature parameters to test against.
         :param X:
         :return:
         """
 
-        #if X.shape[0] == 47:
-        #    return np.divide((X[0:,]-self.mu_), self.sigma_)
-        #else:  #<-- This works when costcalc is not used AND mu/sigma do not have ones added but this will break when using
-        #       # cost calc in formula
-        #    blah = np.divide((X[1:]-self.mu_), self.sigma_)
-        #    blah2 = np.insert(blah, 0, 1, axis=0)  # <-- janky and hacky
-        #    return blah2
+        if len(X.shape) != 2:
+            X_sub = X-self.mu_  # 0-dim array (n,)
+        else:
+            X_sub = X[:,1:]-self.mu_   # n x 1 dim array (n,1)
+        # divide mean by std_dev
+        X = np.divide(X_sub, self.sigma_)
 
-        if len(X.shape) != 2:  # 0-dim array
-            X_sub = X-self.mu_
-        else:  # n x 1 dim array
-            X_sub = X[:,1:]-self.mu_
-        X_div = np.divide(X_sub, self.sigma_)
-
-        if self.include_bias:
-            if len(X.shape) != 2:
-                # insert col ones again
-                X = np.insert(X_div, 0, 1, axis=0)
-            else:
-                X = np.insert(X_div, 0, 1, axis=1)
+        if self.include_bias: # if bias in dataset
+            if len(X.shape) != 2:  # insert col ones on axis 0
+                X = np.insert(X, 0, 1, axis=0)
+            else:  # insert col ones on axis 1
+                X = np.insert(X, 0, 1, axis=1)
 
         return X
