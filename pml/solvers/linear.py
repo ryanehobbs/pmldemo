@@ -8,7 +8,7 @@ def linear_leastsquares(X, y):
     is a very quick way to calculate the minimized costs for a linear regression.
     Note: Should only be applied to small data sets. Larger data sets should use
     gradient descent. The normal equation is a very computationally expensive
-    calculation for the processor.
+    calculation for the processor.  It is also an approximation.
     :param X:
     :param y:
     :return:
@@ -22,7 +22,57 @@ def linear_leastsquares(X, y):
 
     return theta
 
-def gradient_descent(X, y, theta=None, alpha=0.01, iterations=1, costfunc=None):
+# create a new function that called fminfunc
+# fminfunc will take a pointer to a cost function/method with X,y and t)
+# it will have **kwargs that set the iteration, and alpha and any they option
+# so it would be called as fminfunc(*pointer_to_costfunc, X, y, initial_theta, **kwargs)
+
+def fminfunc(costfunc, X, y, theta, **kwargs):
+    """
+
+    :param costfunc:
+    :param X:
+    :param y:
+    :param theta:
+    :param kwargs:
+    :return:
+    """
+
+    # extract the array shape of row samples and column features
+    n_samples, n_features = X.shape
+    alpha = kwargs.get('alpha', 0.01)
+    max_iter = kwargs.get('max_iter', 1)
+
+    # check theta params and ensure correct data type
+    if isinstance(theta, numbers.Number):
+        theta = None
+    elif not isinstance(theta, np.ndarray) and theta is not None:
+        theta = np.array(theta, dtype='f')
+
+    # initialize weights (theta) using supplied or set to zero
+    if theta is None:  # initialize weights to zero
+        theta = np.zeros((n_features + 1, 1))
+    else:
+        theta = theta  # use values passed in
+
+    # create history matrix to store cost values
+    cost_gradient = np.zeros((max_iter, 1))
+    # FIXME: Maybe use sparse instead of numpy.matrix?
+    X = np.matrix(X)
+
+    # suppress RuntimeWarning: overflow encountered due to NaN
+    np.seterr(over='ignore')
+
+    # loop through all iteration samples
+    for i in range(0, max_iter):
+        # calculate gradient descent
+        theta -= (alpha/n_samples) * (X.T * (np.dot(X, theta) - y))
+
+    j_cost, theta = costfunc(X, y, theta)
+
+    return theta, cost_gradient
+
+def gradient_descent(X, y, theta=None, alpha=0.01, max_iter=1, costfunc=None):
     """
     Perform gradient descent calculation against training data.
     Gradient descent is a first-order iterative optimization algorithm.
@@ -33,7 +83,7 @@ def gradient_descent(X, y, theta=None, alpha=0.01, iterations=1, costfunc=None):
     :param y: np.ndarray Vector[n_samples] Training labels
     :param theta: array-like Vector[n_features] coefficient parameters
     :param alpha: float learning rate parameter. alpha is equal to 1 / C.
-    :param iterations: integer number of iterations for the solver.
+    :param max_iter: integer number of iterations for the solver.
     :param costfunc: (Optional) function pointer that solver can call to calculate min->cost
     :return: Tuple (theta, grad) theta contains the minimized cost coeffecient, if cost function
     parameter set, grad will contain the historical costs associated with gradient descent calculation
@@ -46,7 +96,7 @@ def gradient_descent(X, y, theta=None, alpha=0.01, iterations=1, costfunc=None):
     # expressed as thetaJ = thetaJ - alpha(1/m) * sum((h_thetaX - y)*(X))
     # h_thetaX is the linear model h_theta = theta0 + theta1 * X1
 
-    grad = None
+    cost_gradient = None
     # extract the array shape of row samples and column features
     n_samples, n_features = X.shape
 
@@ -67,17 +117,17 @@ def gradient_descent(X, y, theta=None, alpha=0.01, iterations=1, costfunc=None):
 
     if costfunc:
         # create history matrix to store cost values
-        grad = np.zeros((iterations, 1))
+        cost_gradient = np.zeros((max_iter, 1))
     # suppress RuntimeWarning: overflow encountered due to NaN
     np.seterr(over='ignore')
 
     # loop through all iteration samples
-    for i in range(0, iterations):
+    for i in range(0, max_iter):
         # calculate gradient descent
         theta -= (alpha/n_samples) * (X.T * (np.dot(X, theta) - y))
-        if grad is not None:  # used to check and validate learning rate
-            grad[i] = costfunc(X, y, theta)
+        if cost_gradient is not None:  # used to check and validate learning rate
+            cost_gradient[i] = costfunc(X, y, theta)
     theta = np.nan_to_num(theta)  # set NaN to valid number 0
-    grad = np.nan_to_num(grad)  # set NaN to valid number 0
+    cost_gradient = np.nan_to_num(cost_gradient)  # set NaN to valid number 0
 
-    return theta, grad
+    return theta, cost_gradient

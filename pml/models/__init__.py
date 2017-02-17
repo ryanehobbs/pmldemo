@@ -6,10 +6,11 @@ from abc import ABCMeta, abstractmethod
 ALPHA_MIN = 0.0001
 ALPHA_MAX = 10
 
-class LinearMixin(six.with_metaclass(ABCMeta)):
+class Linear(six.with_metaclass(ABCMeta)):
     """
     Base class for linear regression models.Implemented as a MixIn
     """
+    __metaclass__ = ABCMeta
 
     def __init__(self, normalize=False, include_bias=True, solver="linear", iterations=10, alpha=0.01):
         """
@@ -39,7 +40,25 @@ class LinearMixin(six.with_metaclass(ABCMeta)):
         """Abstract fitting method must be implemented in subclass"""
         pass
 
-    def fit_intercept(self, X, y, theta=None):
+    @abstractmethod
+    def docalc_slope(self, X, theta):
+        """Abstract slope calculation method must be implemented in subclass"""
+        pass
+
+    def calculate_slope(self, X, theta):
+        """
+        Perform slope calculation by multiplying the nx1 vector (theta params) with the matrix X.
+        Used primarily for peforming both cost calculations and gradient descent.  Method employs
+        a GoF Template pattern which allows the linear subclass types to override.
+        https://en.m.wikipedia.org/wiki/Template_method_pattern
+        :param X: array-like Array[n_samples, n_features] Training data
+        :param theta: array-like Vector[n_features]  coefficient parameters
+        :return: Linear equation slope calculation
+        """
+
+        return self.docalc_slope(X, theta)
+
+    def _pre_fit(self, X, y, theta=None):
         """
         Center data in linear model to zero along axis 0. If theta
         (sampled weights) are 0 then the weighted means of X and y is
@@ -76,40 +95,17 @@ class LinearMixin(six.with_metaclass(ABCMeta)):
             # divide feature values by their respective standard deviations
             X = np.divide(tf_mu, tf_std)
 
-        # if including bias set first column to ones
+        # if including bias (intercept) set first column to ones
         if self.include_bias:
             self.bias_ = np.ones((n_samples, 1))
             X = np.insert(X, 0, self.bias_.T, axis=1)
-            #self.mu_ = np.insert(self.mu_, 0, 1, axis=0)
-            #self.sigma_ = np.insert(self.sigma_, 0, 1, axis=0)
 
         return X, y
 
+    @abstractmethod
     def predict(self, X):
-        """
-        Predict outcomes using a linear model against training data
-
-        :param X: array-like Array[n_samples, n_features] Training data
-        :return: Array [n_samples] predicted values
-        """
-
-        theta_length = self.theta_.shape[0]
-
-        if not hasattr(self, 'theta_'):
-            raise RuntimeError("Instance is currently not fitted")
-
-        X = np.array(X)
-
-        if self.normalize:  # predict based on normalized values
-            X = self.__predictN(X)
-        else:
-            if self.include_bias:
-                # if 0-dim array we need to add bias if necessary
-                if len(X.shape) != 2:  # insert col ones on axis 0
-                    X = np.insert(X, 0, 1, axis=0)
-
-        # hypothesis in linear model: h_theta(x) = theta_zero + theta_one * x_one
-        return np.sum(np.dot(X, self.theta_).astype(np.float32))
+        """"""
+        pass
 
     def __predictN(self, X):
         """
@@ -133,3 +129,11 @@ class LinearMixin(six.with_metaclass(ABCMeta)):
                 X = np.insert(X, 0, 1, axis=1)
 
         return X
+
+class LinearMixin(Linear):
+    """Abstract mixin class for use by Linear Regression models"""
+    __metaclass__ = ABCMeta
+
+
+
+
