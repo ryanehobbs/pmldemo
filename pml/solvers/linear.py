@@ -1,5 +1,6 @@
 import numpy as np
 import numbers
+from . import doglegm
 
 def linear_leastsquares(X, y):
     """
@@ -38,39 +39,155 @@ def fminfunc(costfunc, X, y, theta, **kwargs):
     :return:
     """
 
-    # extract the array shape of row samples and column features
-    n_samples, n_features = X.shape
-    alpha = kwargs.get('alpha', 0.01)
-    max_iter = kwargs.get('max_iter', 1)
 
-    # check theta params and ensure correct data type
-    if isinstance(theta, numbers.Number):
-        theta = None
-    elif not isinstance(theta, np.ndarray) and theta is not None:
-        theta = np.array(theta, dtype='f')
+    max_iter = kwargs.get('max_iter', 400)
 
-    # initialize weights (theta) using supplied or set to zero
-    if theta is None:  # initialize weights to zero
-        theta = np.zeros((n_features + 1, 1))
-    else:
-        theta = theta  # use values passed in
+    nargout = 2
+    has_grad = True
+    factor = 0.1
+    x = theta[:]
+    xsz = x.shape
+    tolf = 1e-7
+    tolx = 1e-7
+    n = len(x)
+    nfev = 0
+    info = 0
+    # initial evaluation reshape
+    fval = costfunc(X, y, theta)[0]
+    grad = np.zeros((n, 1))
+    dg = np.ones((n, 1))
 
-    # create history matrix to store cost values
-    cost_gradient = np.zeros((max_iter, 1))
-    # FIXME: Maybe use sparse instead of numpy.matrix?
-    X = np.matrix(X)
+    if theta.dtype == np.float32:
+        macheps = np.spacing(np.single(1))
+    elif theta.dtype == np.float64:
+        macheps = np.spacing(np.double(1))
 
-    # suppress RuntimeWarning: overflow encountered due to NaN
-    np.seterr(over='ignore')
+    nsuciter = 0
+    lastratio = 0
 
-    # loop through all iteration samples
     for i in range(0, max_iter):
-        # calculate gradient descent
-        theta -= (alpha/n_samples) * (X.T * (np.dot(X, theta) - y))
+        grad0 = grad
+        fval, grad = costfunc(X, y, theta)
+        grad = grad[:]
+        nfev += 1
 
-    j_cost, theta = costfunc(X, y, theta)
+        if i == 0:
+            hesr = np.matrix(np.identity(n))
+        else:
+            # Use the damped BFGS formula.
+            y = grad - grad0
+            sBs = np.sum(w**2)
+            Bs = hesr.T * w
+            sy = y.T * s
+            theta = 0.8 / max(1 - sy / sBs, 0.8)  # FIXME: should we relabel theta?
+            r = theta * y + (1 - theta) * Bs
+            # FIXME: **START need a lib
+            #hesr = cholupdate (hesr, r / sqrt (s' * r), "+");
+            #[hesr, info] = cholupdate(hesr, Bs / sqrt (sBs), "-");
+            # FIXME: **END need a lib
+            if info:
+                hesr = np.matrix(np.identity(n))
 
-    return theta, cost_gradient
+        if i == 0:
+            xn = np.linalg.norm(np.multiply(dg, x))
+            delta = factor * max(xn, 1)
+
+        if (np.linalg.norm(grad) <= tolf * n* xn):
+            info = 1;
+            break
+
+        suc = False
+        decfac = 0.5
+
+        # inner loop
+        while(not suc and i < max_iter):
+            s = -doglegm(hesr, grad, dg, delta)
+            sn = np.linalg.norm(np.multiply(dg, s))
+            if i == 0:
+                delta = min(delta, sn)
+
+            fval1 = costfunc(X, y, x+s)[0]
+
+            if fval1 < fval:
+                # Scaled actual reduction.
+                actred = (fval - fval1) / (abs(fval1) + abs(fval))
+            else:
+                actred = -1
+
+            w = hesr * s
+            # Scaled predicted reduction, and ratio.
+            # FIXME: sum of squares in some books is np.sum(w ** 2)
+            t = 1/2 * np.sum(np.power(w, 2)) + grad.T * s
+            if t < 0:
+                prered = -t/(abs (fval) + abs (fval + t))
+                ratio = actred / prered
+            else:
+                prered = 0
+                ratio = 0
+
+            ## Update delta.
+            if (ratio < min (max (0.1, 0.8 * lastratio), 0.9)):
+                delta *= decfac
+                decfac ^= 1.4142
+                if (delta <= 10 * macheps * xn):
+                    ## Trust region became uselessly small.
+                    info = -3
+                    break
+                else:
+                    lastratio = ratio
+                    decfac = 0.5
+                if (abs (1-ratio) <= 0.1):
+                    delta = 1.4142 * sn
+                elif (ratio >= 0.5):
+                    delta = max (delta, 1.4142 * sn)
+
+            if (ratio >= 1e-4):
+                ## Successful iteration.
+                x += s
+                xn = np.linalg.norm(np.multiply(dg, x))
+                fval = fval1
+                nsuciter += 1
+                suc = True
+
+            ## The following tests done only after successful step.
+            if ratio >= 1e-4:
+                ## This one is classic.  Note that we use scaled variables again,
+                ## but compare to scaled step, so nothing bad.
+                if sn <= tolx * xn:
+                    info = 2
+                 ## Again a classic one.
+                elif actred < tolf:
+                    info = 3
+
+    ## When info != 1, recalculate the gradient and Hessian using the final x.
+    if (nargout > 4 and (info == -1 or info == 2 or info == 3)):
+        grad0 = grad;
+        if has_grad:
+            [fval, grad] = costfunc(X, y, theta)
+            grad = grad[:]
+        if nargout > 5:
+            ## Use the damped BFGS formula.
+            y = grad - grad0
+            sBs = np.sum(w ** 2)
+            Bs = hesr.T * w
+            sy = y.T * s
+            theta = 0.8 / max (1 - sy / sBs, 0.8)  # FIXME: should we relabel theta?
+            r = theta * y + (1-theta) * Bs
+            # FIXME: **START need a lib
+            #hesr = cholupdate (hesr, r / sqrt (s' * r), "+")
+            #hesr = cholupdate (hesr, Bs / sqrt (sBs), "-")
+            # FIXME: **END need a lib
+
+        ## Return the gradient in the same shape as x
+        grad = np.reshape(grad, xsz)
+
+    ## Restore original shapes.
+    x = np.reshape(x, xsz)
+
+    if nargout > 5:
+        hess = hesr.T * hesr;
+
+    print('done')
 
 def gradient_descent(X, y, theta=None, alpha=0.01, max_iter=1, costfunc=None):
     """

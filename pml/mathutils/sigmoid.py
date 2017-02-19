@@ -1,4 +1,5 @@
 import numpy as np
+import math
 
 def sigmoid(z):
     """
@@ -11,9 +12,5 @@ def sigmoid(z):
     :return:
     """
 
-    z = np.array(z)
-    g = np.zeros(len(z))
-
     # calculate sigmoid curve g(z) = 1/(1+e^-z)
-    g = np.divide(1, 1 + np.power(1, np.exp(-z)))
-    return g
+    return np.divide(1, 1 + np.exp(-z))
