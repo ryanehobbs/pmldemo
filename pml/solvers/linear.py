@@ -1,6 +1,7 @@
 import numpy as np
 import numbers
 from . import doglegm
+from . import cholupdate
 
 def linear_leastsquares(X, y):
     """
@@ -75,18 +76,18 @@ def fminfunc(costfunc, X, y, theta, **kwargs):
             hesr = np.matrix(np.identity(n))
         else:
             # Use the damped BFGS formula.
-            y = grad - grad0
-            sBs = np.sum(w**2)
+            y2 = grad - grad0
+            sBs = np.sum(np.power(w, 2))
             Bs = hesr.T * w
-            sy = y.T * s
-            theta = 0.8 / max(1 - sy / sBs, 0.8)  # FIXME: should we relabel theta?
-            r = theta * y + (1 - theta) * Bs
-            # FIXME: **START need a lib
-            #hesr = cholupdate (hesr, r / sqrt (s' * r), "+");
-            #[hesr, info] = cholupdate(hesr, Bs / sqrt (sBs), "-");
-            # FIXME: **END need a lib
-            if info:
-                hesr = np.matrix(np.identity(n))
+            sy = np.sum(np.dot(y2.T, s))
+            theta2 = 0.8 / max(1 - sy / sBs, 0.8)
+            r = theta2 * y2 + (1 - theta2) * Bs
+            hesr = cholupdate(hesr, r / np.sum(np.sqrt(s.T * r)), "+");
+            hesr = cholupdate(hesr, Bs / np.sqrt(sBs), "-");
+            # FIXME: Possibly trap exception if downdate is not successful
+            #if info:
+                #hesr = np.matrix(np.identity(n))
+            # FIXME: End
 
         if i == 0:
             xn = np.linalg.norm(np.multiply(dg, x))
@@ -117,7 +118,7 @@ def fminfunc(costfunc, X, y, theta, **kwargs):
             w = hesr * s
             # Scaled predicted reduction, and ratio.
             # FIXME: sum of squares in some books is np.sum(w ** 2)
-            t = 1/2 * np.sum(np.power(w, 2)) + grad.T * s
+            t = 1/2 * np.sum(np.power(w, 2)) + np.sum(np.dot(grad.T, s))
             if t < 0:
                 prered = -t/(abs (fval) + abs (fval + t))
                 ratio = actred / prered
@@ -128,14 +129,14 @@ def fminfunc(costfunc, X, y, theta, **kwargs):
             ## Update delta.
             if (ratio < min (max (0.1, 0.8 * lastratio), 0.9)):
                 delta *= decfac
-                decfac ^= 1.4142
+                decfac = np.power(decfac, 1.4142)
                 if (delta <= 10 * macheps * xn):
                     ## Trust region became uselessly small.
                     info = -3
                     break
-                else:
-                    lastratio = ratio
-                    decfac = 0.5
+            else:
+                lastratio = ratio
+                decfac = 0.5
                 if (abs (1-ratio) <= 0.1):
                     delta = 1.4142 * sn
                 elif (ratio >= 0.5):
@@ -149,16 +150,6 @@ def fminfunc(costfunc, X, y, theta, **kwargs):
                 nsuciter += 1
                 suc = True
 
-            ## The following tests done only after successful step.
-            if ratio >= 1e-4:
-                ## This one is classic.  Note that we use scaled variables again,
-                ## but compare to scaled step, so nothing bad.
-                if sn <= tolx * xn:
-                    info = 2
-                 ## Again a classic one.
-                elif actred < tolf:
-                    info = 3
-
     ## When info != 1, recalculate the gradient and Hessian using the final x.
     if (nargout > 4 and (info == -1 or info == 2 or info == 3)):
         grad0 = grad;
@@ -167,16 +158,18 @@ def fminfunc(costfunc, X, y, theta, **kwargs):
             grad = grad[:]
         if nargout > 5:
             ## Use the damped BFGS formula.
-            y = grad - grad0
-            sBs = np.sum(w ** 2)
+            y2 = grad - grad0
+            sBs = np.sum(np.power(w, 2))
             Bs = hesr.T * w
-            sy = y.T * s
-            theta = 0.8 / max (1 - sy / sBs, 0.8)  # FIXME: should we relabel theta?
-            r = theta * y + (1-theta) * Bs
-            # FIXME: **START need a lib
-            #hesr = cholupdate (hesr, r / sqrt (s' * r), "+")
-            #hesr = cholupdate (hesr, Bs / sqrt (sBs), "-")
-            # FIXME: **END need a lib
+            sy = y2.T * s
+            theta2 = 0.8 / max (1 - sy / sBs, 0.8)  # FIXME: should we relabel theta?
+            r = theta2 * y2 + (1-theta2) * Bs
+            hesr = cholupdate(hesr, r / np.sum(np.sqrt(s.T * r)), "+");
+            hesr = cholupdate(hesr, Bs / np.sqrt(sBs), "-");
+            # FIXME: Possibly trap exception if downdate is not successful
+            #if info:
+            #hesr = np.matrix(np.identity(n))
+            # FIXME: End
 
         ## Return the gradient in the same shape as x
         grad = np.reshape(grad, xsz)

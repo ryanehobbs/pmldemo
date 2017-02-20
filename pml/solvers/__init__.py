@@ -32,3 +32,28 @@ def doglegm(r, g,d, delta):
         # form convex combination
         x = alpha * x + ((1 - alpha) * min(snm, delta)) * s
     return x
+
+# https://en.wikipedia.org/wiki/Cholesky_decomposition
+def cholupdate(R,x,sign):
+    p = np.size(x)
+
+    #x = x.T
+
+    for k in range(p):
+        if sign == '+':
+            inner = np.sum(np.power(R[k,k], 2) + (np.sum(np.power(x[k], 2))))
+            r = np.sqrt(inner)
+        elif sign == '-':
+            inner = np.sum(np.power(R[k,k], 2) - (np.sum(np.power(x[k], 2))))
+            r = np.sqrt(inner)
+        #c = r/R[k,k]
+        c = np.divide(r, R[k,k])
+        #s = np.sum(x[k]/R[k,k])
+        s = np.sum(np.divide(x[k], R[k,k]))
+        R[k,k] = r
+        if sign == '+':
+            R[k,k+1:p] = (R[k,k+1:p] + s * x[k+1:p].T)/c
+        elif sign == '-':
+            R[k,k+1:p] = (R[k,k+1:p] - s * x[k+1:p].T)/c
+        x[k+1:p]= c * x[k+1:p] - s * R[k, k+1:p].T
+    return R
