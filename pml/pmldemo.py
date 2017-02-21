@@ -46,8 +46,8 @@ if __name__ == '__main__':
     """Main function for console application"""
 
     # plot classification data
-    #demo_preprocessing()
-    #demo_newmultilinear()
-    #demo_newlinear()
+    demo_preprocessing()
+    demo_newmultilinear()
+    demo_newlinear()
     demo_newlogistic()
 
