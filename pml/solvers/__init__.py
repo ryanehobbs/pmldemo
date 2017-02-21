@@ -107,7 +107,7 @@ def fminfunc(costfunc, X, y, initial_theta, **kwargs):
             # use the double dog leg optimization s^k = alpha_s1^k = alpha_s2^k,
             # where s1 = ascent search direction, s2 = quasi-Newton search direction
             # subtract because we are stepping down
-            s = -doglegm(hesr, grad, dbldog, delta)
+            s = -_doglegm(hesr, grad, dbldog, delta)
             s_norm = np.linalg.norm(dbldog * s)
 
             # initial loop get the delta based on minimum between
@@ -139,7 +139,7 @@ def fminfunc(costfunc, X, y, initial_theta, **kwargs):
                 descfact = np.power(descfact, _SQRT_2)  # new descent factor is current^sqrt(2)
                 trust_reg = 10 * macheps * theta_norm  # calc trust region based on line spacing and normalized theta
                 if (delta <= trust_reg):  # The trust region radius became excessively small. (diverged)
-                    info = -3  # <<-- Change these values
+                    info = -3
                     break  # break execution from inner loop
             else:
                 lastratio = ratio  # store current ratio
@@ -162,7 +162,75 @@ def fminfunc(costfunc, X, y, initial_theta, **kwargs):
     theta_cpy = np.reshape(theta_cpy, theta_sz)
     return theta_cpy, cost_outer
 
+def _doglegm(r, g, d, delta):
+    """
+    The double-dogleg optimization method combines the ideas of the quasi-Newton
+    and trust region methods. In each iteration, the double-dogleg algorithm computes
+    the step as the linear combination of the steepest descent or ascent search direction
+    and a quasi-Newton search direction.
+
+    Solve the double dogleg trust-region minimization problem:
+    Minimize 1/2 * norm(r * x)^2 subject to the constraint norm(d.T * x) <= delta,
+    x being a convex combination of the gauss-newton and scaled gradient.
+
+    :param r: Diagonal scaling matrix
+    :param g: Gradient scaling matrix
+    :param dg:
+    :param delta:
+    :return:
+    """
+
+    # https://github.com/dkogan/libdogleg/blob/master/dogleg.c
+    # http://support.sas.com/documentation/cdl/en/etsug/60372/HTML/default/viewer.htm#etsug_nlomet_sect006.htm
+
+    # solve matrix for s2 direction quasi-Newton search direction
+    b = np.linalg.solve(r.T, g)
+    # solve matrix for s1 direction descent/ascent search direction
+    x = np.linalg.solve(r, b)
+    # calc initial trust region size
+    xn = np.linalg.norm(np.multiply(d, x))
+
+    # begin by getting gauss newton direction
+    if (xn > delta):  # gauss newton is too big, get scaled gradient.
+        s_dir = np.divide(g, d)
+        norm_grad = np.linalg.norm(s_dir)
+        if (norm_grad > 0):  # normalize and rescale
+            # calculate the newton s direction
+            s_dir = np.divide((s_dir / norm_grad), d)
+            # get line minimizer in s direction
+            s_mindiv = np.linalg.norm(r * s_dir)
+            s_minline = (norm_grad / s_mindiv) / s_mindiv
+            if (s_minline < delta):  # get the dogleg path minimizer
+                # normalize trust region delta
+                dxn = delta / xn
+                # get min trust region delta
+                snmd = s_minline / delta
+                # normalize vector
+                bn = np.linalg.norm(b)
+                # calculate the step selection by dividing by gauss-newton
+                t = (bn / norm_grad) * (bn / xn) * snmd
+                t -= dxn * np.power(snmd, 2) - np.sqrt(np.power((t-dxn), 2) + (1 - np.power(dxn, 2)) * (1 - np.power(snmd, 2)))
+                alpha = dxn * (1 - np.power(snmd, 2)) / t
+            else:
+                alpha = 0  # no step selection delta of trust region greater than line minimizer in s direction
+        else:
+            # calculate the step selection by dividing scaled gradient
+            alpha = delta / norm_grad
+            s_minline = 0
+        # form convex combination
+        x = alpha * x + ((1 - alpha) * min(s_minline, delta)) * s_dir
+
+    return x
+
 def doglegm(r, g,d, delta):
+    """
+
+    :param r:
+    :param g:
+    :param d:
+    :param delta:
+    :return:
+    """
 
     # https://github.com/dkogan/libdogleg/blob/master/dogleg.c
     # http://support.sas.com/documentation/cdl/en/etsug/60372/HTML/default/viewer.htm#etsug_nlomet_sect006.htm
