@@ -137,7 +137,7 @@ def fminfunc(costfunc, X, y, theta, **kwargs):
             else:
                 lastratio = ratio
                 decfac = 0.5
-                if (abs (1-ratio) <= 0.1):
+                if (abs (1 - ratio) <= 0.1):
                     delta = 1.4142 * sn
                 elif (ratio >= 0.5):
                     delta = max (delta, 1.4142 * sn)

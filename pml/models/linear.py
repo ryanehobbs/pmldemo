@@ -1,6 +1,7 @@
 import numpy as np
 from models import LinearMixin
 import solvers.linear as ls
+from solvers import fminfunc
 import mathutils.sigmoid as sigmoid
 
 class Linear(LinearMixin):
@@ -152,18 +153,12 @@ class Logistic(LinearMixin):
         j_cost = (1/n_samples) * (np.sum(np.multiply(-y, np.log(hX)) - np.multiply((1-y), np.log(1-hX))))
 
         # colum vector blah = np.array(X[:,[0]])
-
         for i in range(0, n_samples):
-            #blah = np.array(X[i:i+1,]).T
-            #blah2 = hX[i]
-            #blah3 = y[i]
-            #blah4 = hX[i] - y[i]
             grad = grad + (hX[i] - y[i]) * np.array(X[i:i+1,]).T
 
         grad = (1/n_samples) * grad
 
         return j_cost, grad
-
 
     def docalc_slope(self, X, theta):
         """
@@ -191,7 +186,7 @@ class Logistic(LinearMixin):
         X, y = self._pre_fit(X, y, theta)
 
         # check solver type
-        self.theta_, self.grad_ = ls.fminfunc(self._cost_calc, X, y,
+        self.theta_, self.grad_ = fminfunc(self._cost_calc, X, y,
                                               self.theta_, alpha=self.alpha,
                                               max_iter=self.iterations)
 
