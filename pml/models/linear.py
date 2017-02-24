@@ -6,7 +6,7 @@ import mathutils.sigmoid as sigmoid
 
 class Linear(LinearMixin):
 
-    def __init__(self, normalize=False, include_bias=True, solver='linear', iterations=10, alpha=0.01):
+    def __init__(self, normalize=False, solver='linear', iterations=10, alpha=0.01):
         """
         Create a linear model class for performing regression analysis
         :param normalize: (Default: False) Scale features in training data if they differ in order of magnitude
@@ -17,7 +17,7 @@ class Linear(LinearMixin):
         """
 
         # call base class ctor
-        super(Linear, self).__init__(normalize, include_bias, solver, iterations, alpha)
+        super(Linear, self).__init__(normalize, solver, iterations, alpha)
 
     def _cost_calc(self, X, y, theta=None):
         """
@@ -110,7 +110,7 @@ class Linear(LinearMixin):
 
 class Logistic(LinearMixin):
 
-    def __init__(self, normalize=False, include_bias=True, solver='logistic', iterations=10, alpha=0.01):
+    def __init__(self, normalize=False, solver='logistic', iterations=10, alpha=0.01, lambda_r=None):
         """
         Create a linear model class for performing regression analysis
         :param normalize: (Default: False) Scale features in training data if they differ in order of magnitude
@@ -121,9 +121,9 @@ class Logistic(LinearMixin):
         """
 
         # call base class ctor
-        super(Logistic, self).__init__(normalize, include_bias, solver, iterations, alpha)
+        super(Logistic, self).__init__(normalize, solver, iterations, alpha, lambda_r)
 
-    def _cost_calc(self, X, y, theta=None):
+    def _cost_calc(self, X, y, theta=None, lambda_r=None):
         """
 
         :param X:
@@ -132,6 +132,7 @@ class Logistic(LinearMixin):
         :return:
         """
 
+        lambda_r = lambda_r or self.lambda_r
         # The objective of linear regression is to minimize the cost function
         # the function J(theta) = 1/m * sum(-y .* log(h_thetaX) - (1 - y) .* log(1-h_thetaX))
         # where the h_thetaX is the linear model h_theta = theta0 + theta1 * X1
@@ -149,14 +150,23 @@ class Logistic(LinearMixin):
         n_samples = y.shape[0]
         # fit intercept for linear equation this is the hypothesis
         hX = self.docalc_slope(X, theta)
+        # if regularization parameter lambda is set
         # calculate the minimized objective cost function for logistic regression
         j_cost = (1/n_samples) * (np.sum(np.multiply(-y, np.log(hX)) - np.multiply((1-y), np.log(1-hX))))
 
         # colum vector blah = np.array(X[:,[0]])
         for i in range(0, n_samples):
-            grad = grad + (hX[i] - y[i]) * np.array(X[i:i+1,]).T
+            grad = grad + (hX[i] - y[i]) * np.array(X[i:i+1, ]).T
 
         grad = (1/n_samples) * grad
+
+        if lambda_r:
+            # factor regularization into cost value
+            j_cost_reg = np.sum((lambda_r / (2 * n_samples) * sum(np.power(theta[2:], 2))))
+            j_cost += j_cost_reg
+            # factor regularization into gradient
+            grad_reg = np.sum(lambda_r / n_samples * theta[2:])
+            grad += grad_reg
 
         return j_cost, grad
 
@@ -198,6 +208,16 @@ class Logistic(LinearMixin):
         :return:
         """
 
-        pass
+        if not hasattr(self, 'theta_'):
+            raise RuntimeError("Instance is currently not fitted")
 
+        X = np.array(X)
+        X.reshape((X.shape[0], 1))
 
+        if self.include_bias:
+            # if 0-dim array we need to add bias if necessary
+            if len(X.shape) != 2:  # insert col ones on axis 0
+                X = np.insert(X, 0, 1, axis=0)
+
+        # hypothesis in linear model: h_theta(x) = theta_zero + theta_one * x_one
+        return np.sum(sigmoid.sigmoid(np.dot(X, self.theta_[:X.shape[0]])).astype(np.float32))

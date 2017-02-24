@@ -40,6 +40,17 @@ def demo_newlogistic():
     logistic_model.fit(X, y)
     print("done")
 
+def demo_logisticreg():
+
+    X, y = data.load_data(source='samples/sample_data4.txt', columns=3, features=[1,2])
+    logistic_model = linear.Logistic(solver='logistic', normalize=False, iterations=400, alpha=0.01, lambda_r=1)
+    # map polynomial features
+    preprocessor = preprocessing.PolyFeatures(degrees=6)
+    X = preprocessor.mapfeatures(X)
+    logistic_model.fit(X, y)
+    quality = logistic_model.predict([2, 3])
+    print("done")
+
 
 
 if __name__ == '__main__':
@@ -50,4 +61,5 @@ if __name__ == '__main__':
     demo_newmultilinear()
     demo_newlinear()
     demo_newlogistic()
+    demo_logisticreg()
 

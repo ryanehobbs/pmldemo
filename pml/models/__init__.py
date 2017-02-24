@@ -1,5 +1,6 @@
 import numpy as np
 import numbers
+import preprocessing
 import six
 from abc import ABCMeta, abstractmethod
 
@@ -12,7 +13,7 @@ class Linear(six.with_metaclass(ABCMeta)):
     """
     __metaclass__ = ABCMeta
 
-    def __init__(self, normalize=False, include_bias=True, solver="linear", iterations=10, alpha=0.01):
+    def __init__(self, normalize=False, solver="linear", iterations=10, alpha=0.01, lambda_r=None):
         """
         Base class for linear model regression calculations
         :param normalize: (Default: False) Scale features in training data if they differ in order of magnitude
@@ -24,9 +25,10 @@ class Linear(six.with_metaclass(ABCMeta)):
 
         # normalize only if using gradient descent always default to False
         self.normalize = normalize if solver != 'normal' else False
-        self.include_bias = include_bias
+        self.include_bias = True  # TODO: refactor the args
         self.solver = solver
         self.iterations = iterations
+        self.lambda_r = lambda_r
 
         # ensure alpha (learning rate) conforms to 0.001 < alpha < 10
         if ALPHA_MIN < alpha < ALPHA_MAX:
