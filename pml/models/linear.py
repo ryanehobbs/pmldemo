@@ -150,7 +150,6 @@ class Logistic(LinearMixin):
         n_samples = y.shape[0]
         # fit intercept for linear equation this is the hypothesis
         hX = self.docalc_slope(X, theta)
-        # if regularization parameter lambda is set
         # calculate the minimized objective cost function for logistic regression
         j_cost = (1/n_samples) * (np.sum(np.multiply(-y, np.log(hX)) - np.multiply((1-y), np.log(1-hX))))
 
@@ -160,6 +159,7 @@ class Logistic(LinearMixin):
 
         grad = (1/n_samples) * grad
 
+        # if regularization parameter lambda is set
         if lambda_r:
             # factor regularization into cost value
             j_cost_reg = np.sum((lambda_r / (2 * n_samples) * sum(np.power(theta[2:], 2))))

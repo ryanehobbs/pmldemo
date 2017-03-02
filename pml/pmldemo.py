@@ -51,7 +51,24 @@ def demo_logisticreg():
     quality = logistic_model.predict([2, 3])
     print("done")
 
+def demo_multiclass():
 
+    import numpy as np
+    X, y = data.load_matdata(file_name='samples/ex3data1.mat')
+    logistic_model = linear.Logistic(solver='logistic', normalize=False, iterations=400, alpha=0.01, lambda_r=3)
+
+    theta_t = [-2, -1, 1, 2]
+    #X_t = np.ones((5, 1)).reshape(1:15,5,3))/10
+    #y_t = np.empty((1;0;1;0;1))
+    logistic_model.fit(X_t, y_t)
+    cost = logistic_model.predict(theta_t)
+
+    #fprintf('\nCost: %f\n', J);
+    #fprintf('Expected cost: 2.534819\n');
+    #fprintf('Gradients:\n');
+    #fprintf(' %f \n', grad);
+    #fprintf('Expected gradients:\n');
+    #fprintf(' 0.146561\n -0.548558\n 0.724722\n 1.398003\n');
 
 if __name__ == '__main__':
     """Main function for console application"""
@@ -62,4 +79,6 @@ if __name__ == '__main__':
     demo_newlinear()
     demo_newlogistic()
     demo_logisticreg()
+    demo_multiclass()
+
 
