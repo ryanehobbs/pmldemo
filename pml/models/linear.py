@@ -110,7 +110,7 @@ class Linear(LinearMixin):
 
 class Logistic(LinearMixin):
 
-    def __init__(self, normalize=False, solver='logistic', iterations=10, alpha=0.01, lambda_r=None):
+    def __init__(self, normalize=False, solver='logistic', iterations=10, alpha=0.01, lambda_r=None, multi_class=False):
         """
         Create a linear model class for performing regression analysis
         :param normalize: (Default: False) Scale features in training data if they differ in order of magnitude
@@ -121,7 +121,13 @@ class Logistic(LinearMixin):
         """
 
         # call base class ctor
-        super(Logistic, self).__init__(normalize, solver, iterations, alpha, lambda_r)
+        super(Logistic, self).__init__(normalize, solver, iterations, alpha, lambda_r, multi_class)
+
+    def cost_calc(self, X, y, theta=None, lambda_r=None):
+
+        if not lambda_r: lambda_r = self.lambda_r
+
+        return self._cost_calc(X, y, theta, lambda_r)
 
     def _cost_calc(self, X, y, theta=None, lambda_r=None):
         """
@@ -141,7 +147,8 @@ class Logistic(LinearMixin):
         if theta is not None:
             self.theta_ = theta
 
-        grad = np.zeros((theta.shape[0], 1))
+        #grad = np.zeros((theta.shape[0], 1))
+        grad = np.zeros(theta.shape[0])
 
         # suppress RuntimeWarning: overflow encountered due to NaN
         np.seterr(divide='ignore')
@@ -151,9 +158,12 @@ class Logistic(LinearMixin):
         # fit intercept for linear equation this is the hypothesis
         hX = self.docalc_slope(X, theta)
         # calculate the minimized objective cost function for logistic regression
-        j_cost = (1/n_samples) * (np.sum(np.multiply(-y, np.log(hX)) - np.multiply((1-y), np.log(1-hX))))
 
-        # colum vector blah = np.array(X[:,[0]])
+        # FIXME FIND OUT WHICH ONE WORKS FOR ALL LOGISTIC CALCS
+        j_cost = (1/n_samples) * (np.sum(np.multiply(-y.T, np.log(hX)) - np.multiply((1-y).T, np.log(1-hX))))
+        #j_cost = (1/n_samples) * (np.sum(np.multiply(-y, np.log(hX)) - np.multiply((1-y), np.log(1-hX))))
+
+        # column vector blah = np.array(X[:,[0]])
         for i in range(0, n_samples):
             grad = grad + (hX[i] - y[i]) * np.array(X[i:i+1, ]).T
 
@@ -180,7 +190,7 @@ class Logistic(LinearMixin):
 
         return sigmoid.sigmoid(np.dot(X, theta))
 
-    def fit(self, X, y, theta=None):
+    def fit(self, X, y, theta=None, cost_only=False):
         """
 
         :param X:
@@ -195,11 +205,18 @@ class Logistic(LinearMixin):
         # pre fit data with theta params and bias if included
         X, y = self._pre_fit(X, y, theta)
 
-        # check solver type
-        self.theta_, self.grad_ = fminfunc(self._cost_calc, X, y,
-                                              self.theta_, alpha=self.alpha,
-                                              max_iter=self.iterations)
+        if not cost_only:
+            # check solver type
+            #self.theta_, self.grad_ = fminfunc(self._cost_calc, X, y,
+            #                                      self.theta_, alpha=self.alpha,
+            #                                      max_iter=self.iterations)
+            self.theta_, self.grad_ = ls.gradient_descent(X, y, self.theta_, alpha=self.alpha,
+                                                          max_iter=self.iterations, costfunc=self._cost_calc)
+        else:
+            j, grad = self.cost_calc(X, y, np.array(theta))
 
+
+        print("done")
 
     def predict(self, X):
         """
@@ -214,10 +231,11 @@ class Logistic(LinearMixin):
         X = np.array(X)
         X.reshape((X.shape[0], 1))
 
-        if self.include_bias:
-            # if 0-dim array we need to add bias if necessary
-            if len(X.shape) != 2:  # insert col ones on axis 0
-                X = np.insert(X, 0, 1, axis=0)
+        # FIXME: this needs to be re-worked
+        #if self.include_bias:
+        #    # if 0-dim array we need to add bias if necessary
+        #    if len(X.shape) != 2:  # insert col ones on axis 0
+        #        X = np.insert(X, 0, 1, axis=0)
 
         # hypothesis in linear model: h_theta(x) = theta_zero + theta_one * x_one
         return np.sum(sigmoid.sigmoid(np.dot(X, self.theta_[:X.shape[0]])).astype(np.float32))

@@ -13,7 +13,7 @@ class Linear(six.with_metaclass(ABCMeta)):
     """
     __metaclass__ = ABCMeta
 
-    def __init__(self, normalize=False, solver="linear", iterations=10, alpha=0.01, lambda_r=None):
+    def __init__(self, normalize=False, solver="linear", iterations=10, alpha=0.01, lambda_r=None, multi_class=False):
         """
         Base class for linear model regression calculations
         :param normalize: (Default: False) Scale features in training data if they differ in order of magnitude
@@ -29,6 +29,7 @@ class Linear(six.with_metaclass(ABCMeta)):
         self.solver = solver
         self.iterations = iterations
         self.lambda_r = lambda_r
+        self.multi_class = multi_class
 
         # ensure alpha (learning rate) conforms to 0.001 < alpha < 10
         if ALPHA_MIN < alpha < ALPHA_MAX:

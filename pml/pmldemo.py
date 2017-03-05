@@ -4,6 +4,8 @@ import data.loader as data
 import preprocessing
 import models.linear as linear
 
+import numpy as np
+
 
 def demo_preprocessing():
 
@@ -53,16 +55,21 @@ def demo_logisticreg():
 
 def demo_multiclass():
 
-    import numpy as np
-    X, y = data.load_matdata(file_name='samples/ex3data1.mat')
-    logistic_model = linear.Logistic(solver='logistic', normalize=False, iterations=400, alpha=0.01, lambda_r=3)
+    #import numpy as np
+    #X, y = data.load_matdata(file_name='samples/ex3data1.mat')
+    #logistic_model = linear.Logistic(solver='logistic', normalize=False, iterations=400, alpha=0.01, lambda_r=3)
 
-    theta_t = [-2, -1, 1, 2]
-    #X_t = np.ones((5, 1)).reshape(1:15,5,3))/10
-    #y_t = np.empty((1;0;1;0;1))
-    logistic_model.fit(X_t, y_t)
-    cost = logistic_model.predict(theta_t)
+    # test theta values
+    ##theta_t = [-2, -1, 1, 2]
+    # create n x n vector with values 1-15 and shaped as 5,3, divide all values by 10
+    ##X_t = np.arange(1,16).reshape(5, -1, order='F')/10
+    # create n x 1 vector of test y labels reshape to 5,1
+    ##y_t = np.array([1, 0, 1, 0, 1]).reshape((5, 1))
+    # fit intercept and add column of 1's bias
+    ##logistic_model.fit(X_t, y_t, theta_t)
+    #logistic_model.fit(X_t, y_t, theta_t, cost_only=True)
 
+    print("done")
     #fprintf('\nCost: %f\n', J);
     #fprintf('Expected cost: 2.534819\n');
     #fprintf('Gradients:\n');
@@ -74,11 +81,11 @@ if __name__ == '__main__':
     """Main function for console application"""
 
     # plot classification data
-    demo_preprocessing()
-    demo_newmultilinear()
-    demo_newlinear()
-    demo_newlogistic()
+    #demo_preprocessing()
+    #demo_newmultilinear()
+    #demo_newlinear()
+    #demo_newlogistic()
     demo_logisticreg()
-    demo_multiclass()
+    #demo_multiclass()
 
 
