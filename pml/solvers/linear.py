@@ -64,9 +64,6 @@ def gradient_descent(X, y, theta=None, alpha=0.01, max_iter=1, costfunc=None):
     else:
         theta = theta  # use values passed in
 
-    # FIXME: Maybe use sparse instead of numpy.matrix?
-    X = np.matrix(X)
-
     if costfunc:
         # create history matrix to store cost values
         cost_gradient = np.zeros((max_iter, 1))
@@ -75,7 +72,7 @@ def gradient_descent(X, y, theta=None, alpha=0.01, max_iter=1, costfunc=None):
 
     # loop through all iteration samples
     for i in range(0, max_iter):
-        # calculate gradient descent
+        # calculate gradient descent  # FIXME: the equation np.dot(X, theta) may need to refect whether we are using linear or logistic
         theta -= (alpha/n_samples) * (X.T * (np.dot(X, theta) - y))
         if cost_gradient is not None:  # used to check and validate learning rate
             cost_gradient[i] = costfunc(X, y, theta)

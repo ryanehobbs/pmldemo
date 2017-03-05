@@ -155,13 +155,13 @@ class Logistic(LinearMixin):
 
         # get number of training samples
         n_samples = y.shape[0]
-        # fit intercept for linear equation this is the hypothesis
+        # calc intercept for linear equation this is the hypothesis
         hX = self.docalc_slope(X, theta)
         # calculate the minimized objective cost function for logistic regression
 
         # FIXME FIND OUT WHICH ONE WORKS FOR ALL LOGISTIC CALCS
-        j_cost = (1/n_samples) * (np.sum(np.multiply(-y.T, np.log(hX)) - np.multiply((1-y).T, np.log(1-hX))))
-        #j_cost = (1/n_samples) * (np.sum(np.multiply(-y, np.log(hX)) - np.multiply((1-y), np.log(1-hX))))
+        #j_cost = (1/n_samples) * (np.sum(np.multiply(-y.T, np.log(hX)) - np.multiply((1-y).T, np.log(1-hX))))
+        j_cost = (1/n_samples) * (np.sum(np.multiply(-y, np.log(hX)) - np.multiply((1-y), np.log(1-hX))))
 
         # column vector blah = np.array(X[:,[0]])
         for i in range(0, n_samples):

@@ -103,6 +103,8 @@ class Linear(six.with_metaclass(ABCMeta)):
             self.bias_ = np.ones((n_samples, 1))
             X = np.insert(X, 0, self.bias_.T, axis=1)
 
+        # FIXME: Maybe use sparse instead of numpy.matrix?
+        X = np.matrix(X)
         return X, y
 
     @abstractmethod

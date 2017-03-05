@@ -35,23 +35,24 @@ def demo_newlinear():
     price2 = linear_model.predict([7])*10000
     print("For a population of 70,000 people, we predict a profit of ${}".format(price2))
 
-def demo_newlogistic():
+def demo_logistic1():
 
+    # load test scores samples
     X, y = data.load_data(source='samples/sample_data3.txt', columns=3, features=[1,2])
     logistic_model = linear.Logistic(solver='logistic', normalize=False, iterations=400, alpha=0.01)
     logistic_model.fit(X, y)
     print("done")
 
-def demo_logisticreg():
+#def demo_logisticreg():
 
-    X, y = data.load_data(source='samples/sample_data4.txt', columns=3, features=[1,2])
-    logistic_model = linear.Logistic(solver='logistic', normalize=False, iterations=400, alpha=0.01, lambda_r=1)
-    # map polynomial features
-    preprocessor = preprocessing.PolyFeatures(degrees=6)
-    X = preprocessor.mapfeatures(X)
-    logistic_model.fit(X, y)
-    quality = logistic_model.predict([2, 3])
-    print("done")
+#    X, y = data.load_data(source='samples/sample_data4.txt', columns=3, features=[1,2])
+#    logistic_model = linear.Logistic(solver='logistic', normalize=False, iterations=400, alpha=0.01, lambda_r=1)
+#    # map polynomial features
+#    preprocessor = preprocessing.PolyFeatures(degrees=6)
+#    X = preprocessor.mapfeatures(X)
+#    logistic_model.fit(X, y)
+#    quality = logistic_model.predict([2, 3])
+#    print("done")
 
 def demo_multiclass():
 
@@ -81,11 +82,11 @@ if __name__ == '__main__':
     """Main function for console application"""
 
     # plot classification data
-    #demo_preprocessing()
-    #demo_newmultilinear()
-    #demo_newlinear()
+    demo_preprocessing()
+    demo_newmultilinear()
+    demo_newlinear()
     #demo_newlogistic()
-    demo_logisticreg()
+    #demo_logisticreg()
     #demo_multiclass()
 
 
