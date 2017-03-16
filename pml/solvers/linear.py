@@ -1,7 +1,6 @@
 import numpy as np
 import numbers
-from . import doglegm
-from . import cholupdate
+from pml import Models
 
 def linear_leastsquares(X, y):
     """
@@ -24,7 +23,7 @@ def linear_leastsquares(X, y):
 
     return theta
 
-def gradient_descent(X, y, theta=None, alpha=0.01, max_iter=1, costfunc=None):
+def gradient_descent(X, y, theta=None, alpha=0.01, max_iter=1, linearclass=None):
     """
     Perform gradient descent calculation against training data.
     Gradient descent is a first-order iterative optimization algorithm.
@@ -48,7 +47,6 @@ def gradient_descent(X, y, theta=None, alpha=0.01, max_iter=1, costfunc=None):
     # expressed as thetaJ = thetaJ - alpha(1/m) * sum((h_thetaX - y)*(X))
     # h_thetaX is the linear model h_theta = theta0 + theta1 * X1
 
-    cost_gradient = None
     # extract the array shape of row samples and column features
     n_samples, n_features = X.shape
 
@@ -64,22 +62,28 @@ def gradient_descent(X, y, theta=None, alpha=0.01, max_iter=1, costfunc=None):
     else:
         theta = theta  # use values passed in
 
-    # FIXME: Maybe use sparse instead of numpy.matrix?
-    X = np.matrix(X)
+    cost_gradient = np.zeros((max_iter, 1))
 
-    if costfunc:
-        # create history matrix to store cost values
-        cost_gradient = np.zeros((max_iter, 1))
     # suppress RuntimeWarning: overflow encountered due to NaN
     np.seterr(over='ignore')
 
-    # loop through all iteration samples
-    for i in range(0, max_iter):
-        # calculate gradient descent
-        theta -= (alpha/n_samples) * (X.T * (np.dot(X, theta) - y))
-        if cost_gradient is not None:  # used to check and validate learning rate
-            cost_gradient[i] = costfunc(X, y, theta)
-    theta = np.nan_to_num(theta)  # set NaN to valid number 0
-    cost_gradient = np.nan_to_num(cost_gradient)  # set NaN to valid number 0
 
-    return theta, cost_gradient
+    for i in range(0, max_iter):
+        loss = linearclass.docalc_slope(X, theta) - y
+        gradient = np.dot(X.T, loss) / n_samples
+        theta -= alpha * gradient  # update
+
+    return theta
+
+    #if linearclass.solver == Models.LINEAR.value:
+    #    # loop through all iteration samples
+    #    for i in range(0, max_iter):
+    #        loss = linearclass.docalc_slope(X, theta) - y
+    #        gradient = np.dot(X.T, loss) / n_samples
+    #        theta -= alpha * gradient  # update
+    #        cost_gradient[i] = linearclass._cost_calc(X, y, theta)
+    #    return theta, cost_gradient
+    #elif linearclass.solver == Models.LOGISTIC.value:
+    #    # just calc cost gradient
+    #    j_cost, grad = linearclass._cost_calc(X, y, theta)
+    #    return grad, j_cost

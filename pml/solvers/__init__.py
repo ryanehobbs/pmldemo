@@ -63,6 +63,9 @@ def fminfunc(costfunc, X, y, initial_theta, **kwargs):
     elif initial_theta.dtype == np.float64:
         macheps = np.spacing(np.double(1))
 
+    # initialize cost
+    cost_outer, _ = costfunc(X, y, initial_theta)
+
     # outer loop of convergence
     while(n_iter < max_iter and n_funcval < max_evals and not info):
 
