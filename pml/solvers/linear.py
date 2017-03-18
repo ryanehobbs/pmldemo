@@ -1,7 +1,7 @@
 import numpy as np
 import numbers
-from . import doglegm
-from . import cholupdate
+from pml import Models
+from models import LinearBase
 
 def linear_leastsquares(X, y):
     """
@@ -24,7 +24,7 @@ def linear_leastsquares(X, y):
 
     return theta
 
-def gradient_descent(X, y, theta=None, alpha=0.01, max_iter=1, costfunc=None):
+def gradient_descent(X, y, theta, linearclass, alpha=0.001, max_iter=10):
     """
     Perform gradient descent calculation against training data.
     Gradient descent is a first-order iterative optimization algorithm.
@@ -48,7 +48,13 @@ def gradient_descent(X, y, theta=None, alpha=0.01, max_iter=1, costfunc=None):
     # expressed as thetaJ = thetaJ - alpha(1/m) * sum((h_thetaX - y)*(X))
     # h_thetaX is the linear model h_theta = theta0 + theta1 * X1
 
-    cost_gradient = None
+    if not linearclass or not isinstance(linearclass, LinearBase):
+        raise Exception("LinearClass is None and must be defined as a Linear class type")
+
+    # suppress RuntimeWarning: overflow encountered due to NaN
+    np.seterr(over='ignore')
+    # record cost history gradient
+    cost_gradient = np.zeros((max_iter, 1))
     # extract the array shape of row samples and column features
     n_samples, n_features = X.shape
 
@@ -64,22 +70,15 @@ def gradient_descent(X, y, theta=None, alpha=0.01, max_iter=1, costfunc=None):
     else:
         theta = theta  # use values passed in
 
-    # FIXME: Maybe use sparse instead of numpy.matrix?
-    X = np.matrix(X)
-
-    if costfunc:
-        # create history matrix to store cost values
-        cost_gradient = np.zeros((max_iter, 1))
-    # suppress RuntimeWarning: overflow encountered due to NaN
-    np.seterr(over='ignore')
-
-    # loop through all iteration samples
     for i in range(0, max_iter):
-        # calculate gradient descent
-        theta -= (alpha/n_samples) * (X.T * (np.dot(X, theta) - y))
-        if cost_gradient is not None:  # used to check and validate learning rate
-            cost_gradient[i] = costfunc(X, y, theta)
-    theta = np.nan_to_num(theta)  # set NaN to valid number 0
-    cost_gradient = np.nan_to_num(cost_gradient)  # set NaN to valid number 0
+        loss = linearclass.calculate_slope(X, theta) - y
+        gradient = np.dot(X.T, loss) / n_samples
+        theta -= alpha * gradient  # update
+        if repr(linearclass) == Models.LINEAR.value:
+            cost_gradient[i] = linearclass.calculate_cost(X, y, theta)
+        elif repr(linearclass) == Models.LOGISTIC.value:
+            cost_gradient[i], _ = linearclass.calculate_cost(X, y, theta)
+        else:
+            raise Exception("Linear model class type unknown '{}' ".format(linearclass))
 
     return theta, cost_gradient

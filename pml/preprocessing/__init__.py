@@ -71,9 +71,8 @@ class PolyFeatures(object):
         # the form will be [1, a, b, a^2, ab, b^2] for 2 degrees, etc
         # note if include_bias=True a column of 1's will be added to the
         # beginning
-        if __name__ == '__main__':
-            for i, c in enumerate(p_iter2):
-                X_output[:, i] = X[:, c].prod(POLYFEATURE_PROD_CONSTANT)
+        for i, c in enumerate(p_iter2):
+            X_output[:, i] = X[:, c].prod(POLYFEATURE_PROD_CONSTANT)
 
         # The above looping is equivalent to a nested loop structure where
         # i, and j are indexes based on degrees. and you multiple out the

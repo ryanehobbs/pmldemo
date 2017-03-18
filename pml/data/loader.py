@@ -1,5 +1,18 @@
-import numpy as np
+import scipy.io
 import pandas as pd
+
+def load_matdata(file_name, mdict=None, appendmat=True, **kwargs):
+    """
+
+    :param file_name: Name of the mat file (do not need .mat extension if appendmat==True). Can also pass open file-like object.
+    :param mdict: Dictionary in which to insert matfile variables. (optional)
+    :param appendmat: True to append the .mat extension to the end of the given filename, if not already present. (default: True)
+    :param kwargs: refer to: https://docs.scipy.org/doc/scipy/reference/generated/scipy.io.loadmat.html
+    :return:
+    """
+
+    data = scipy.io.loadmat(file_name, mdict, appendmat, **kwargs)
+    return data.get('X'), data.get('y')
 
 def load_data(*args, **kwargs):
     """

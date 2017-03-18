@@ -6,7 +6,8 @@ import mathutils.sigmoid as sigmoid
 
 class Linear(LinearMixin):
 
-    def __init__(self, normalize=False, include_bias=True, solver='linear', iterations=10, alpha=0.01):
+    __metaclass__ = LinearMixin
+    def __init__(self, normalize=False, solver=None, **kwargs):
         """
         Create a linear model class for performing regression analysis
         :param normalize: (Default: False) Scale features in training data if they differ in order of magnitude
@@ -17,9 +18,9 @@ class Linear(LinearMixin):
         """
 
         # call base class ctor
-        super(Linear, self).__init__(normalize, include_bias, solver, iterations, alpha)
+        super(Linear, self).__init__(normalize, solver, **kwargs)
 
-    def _cost_calc(self, X, y, theta=None):
+    def cost_calc(self, X, y, theta=None):
         """
         Helper method that will calculate J(theta) cost and is helpful to evaluate solvers such
         as gradient descent are correctly converging. Method calculates the minimized cost function.
@@ -59,7 +60,9 @@ class Linear(LinearMixin):
         :return:
         """
 
-        return np.dot(X, theta)
+        hX = np.dot(X, theta)
+        hX = np.reshape(hX, (hX.shape[0], -1))  # make it a nx1 dim vector
+        return hX
 
     def fit(self, X, y, theta=None):
         """
@@ -78,9 +81,7 @@ class Linear(LinearMixin):
 
         # check solver type
         if self.solver == 'linear':
-            self.theta_, self.grad_ = ls.gradient_descent(X, y, self.theta_,
-                                                          alpha=self.alpha, max_iter=self.iterations,
-                                                          costfunc=self._cost_calc)
+            self.theta_, self.grad_ = ls.gradient_descent(X, y, self.theta_, linearclass=self, alpha=self.alpha, max_iter=self.iterations)
         elif self.solver == 'normal':
             self.theta_ = ls.linear_leastsquares(X, y)
 
@@ -98,7 +99,7 @@ class Linear(LinearMixin):
         X = np.array(X)
 
         if self.normalize:  # predict based on normalized values
-            X = self.__predictN(X)
+            X = self.predictN(X)
         else:
             if self.include_bias:
                 # if 0-dim array we need to add bias if necessary
@@ -110,7 +111,9 @@ class Linear(LinearMixin):
 
 class Logistic(LinearMixin):
 
-    def __init__(self, normalize=False, include_bias=True, solver='logistic', iterations=10, alpha=0.01):
+    __metaclass__ = LinearMixin
+
+    def __init__(self, normalize=False, solver='logistic', **kwargs):
         """
         Create a linear model class for performing regression analysis
         :param normalize: (Default: False) Scale features in training data if they differ in order of magnitude
@@ -121,9 +124,9 @@ class Logistic(LinearMixin):
         """
 
         # call base class ctor
-        super(Logistic, self).__init__(normalize, include_bias, solver, iterations, alpha)
+        super(Logistic, self).__init__(normalize, solver, **kwargs)
 
-    def _cost_calc(self, X, y, theta=None):
+    def cost_calc(self, X, y, theta=None):
         """
 
         :param X:
@@ -150,13 +153,16 @@ class Logistic(LinearMixin):
         # fit intercept for linear equation this is the hypothesis
         hX = self.docalc_slope(X, theta)
         # calculate the minimized objective cost function for logistic regression
-        j_cost = (1/n_samples) * (np.sum(np.multiply(-y, np.log(hX)) - np.multiply((1-y), np.log(1-hX))))
+        j_cost = (1/n_samples) * np.sum(np.multiply(-y, np.log(hX)) - np.multiply((1-y), np.log(1-hX))) + (self.lambda_r / (2 * n_samples) * np.sum(np.power(theta[1:], 2)))
 
         # colum vector blah = np.array(X[:,[0]])
         for i in range(0, n_samples):
-            grad = grad + (hX[i] - y[i]) * np.array(X[i:i+1,]).T
+            grad = grad + (hX[i] - y[i]) * np.array(X[i:i+1, ]).T
 
-        grad = (1/n_samples) * grad
+        # grad_reg = lambda_r / n_samples * theta[2:] TODO: << this may need to be changed back for now get entire array
+        grad_reg = self.lambda_r / n_samples * theta[:]
+        # finalize gradient calculation for cost
+        grad = (1/n_samples) * grad + grad_reg
 
         return j_cost, grad
 
@@ -168,7 +174,9 @@ class Logistic(LinearMixin):
         :return:
         """
 
-        return sigmoid.sigmoid(np.dot(X, theta))
+        hX = sigmoid.sigmoid(np.dot(X, theta))
+        hX = np.reshape(hX, (hX.shape[0], -1))  # make it a nx1 dim vector
+        return hX
 
     def fit(self, X, y, theta=None):
         """
@@ -185,11 +193,12 @@ class Logistic(LinearMixin):
         # pre fit data with theta params and bias if included
         X, y = self._pre_fit(X, y, theta)
 
+        # FIXME: A linear gradient descent model does not do well in predicting values
         # check solver type
-        self.theta_, self.grad_ = fminfunc(self._cost_calc, X, y,
+        self.theta1_, self.grad_ = fminfunc(self.cost_calc, X, y,
                                               self.theta_, alpha=self.alpha,
                                               max_iter=self.iterations)
-
+        self.theta2_, self.grad_ = ls.gradient_descent(X, y, self.theta_, linearclass=self, alpha=self.alpha, max_iter=self.iterations, )
 
     def predict(self, X):
         """
@@ -198,6 +207,20 @@ class Logistic(LinearMixin):
         :return:
         """
 
-        pass
+        if not hasattr(self, 'theta_'):
+            raise RuntimeError("Instance is currently not fitted")
 
+        X = np.array(X)
+        X.reshape((X.shape[0], 1))
+
+        if self.include_bias:
+            # if 0-dim array we need to add bias if necessary
+            if len(X.shape) != 2:  # insert col ones on axis 0
+                X = np.insert(X, 0, 1, axis=0)
+
+        blah1=np.sum(sigmoid.sigmoid(np.dot(X, self.theta_[:X.shape[0]])).astype(np.float32))
+        blah2=np.sum(sigmoid.sigmoid(np.dot(X, self.theta_[:X.shape[0]])).astype(np.float32))
+
+        # hypothesis in logistic model: h_theta(x) = theta_zero + theta_one * x_one
+        return np.sum(sigmoid.sigmoid(np.dot(X, self.theta_[:X.shape[0]])).astype(np.float32))
 

@@ -55,13 +55,16 @@ def fminfunc(costfunc, X, y, initial_theta, **kwargs):
     # create n x 1 vector for Double-Dogleg Optimization (DBLDOG)
     dbldog = np.ones((theta_len, 1))
     # create n x 1 vector for gradient calculations this is the initial iter0 copy
-    grad = np.zeros((theta_len, 1))
+    grad = np.zeros(theta_len)
 
     # Distance between 1 and the nearest floating point number. For 32 or 64 bit
     if initial_theta.dtype == np.float32:
         macheps = np.spacing(np.single(1))
     elif initial_theta.dtype == np.float64:
         macheps = np.spacing(np.double(1))
+
+    # initialize cost
+    cost_outer, _ = costfunc(X, y, initial_theta)
 
     # outer loop of convergence
     while(n_iter < max_iter and n_funcval < max_evals and not info):
@@ -114,7 +117,7 @@ def fminfunc(costfunc, X, y, initial_theta, **kwargs):
             if n_iter == 0:
                 delta = min(delta, s_norm)
 
-            # call costfunction and evaluate cost based on initial cost in outer loop
+            # call cost function and evaluate cost based on initial cost in outer loop
             cost_inner = costfunc(X, y, theta_cpy + s)[0]
 
             if cost_inner < cost_outer:  # scaled actual reduction (average)
@@ -179,7 +182,6 @@ def doglegm(r, g, d, delta):
     :return:
     """
 
-    # https://github.com/dkogan/libdogleg/blob/master/dogleg.c
     # http://support.sas.com/documentation/cdl/en/etsug/60372/HTML/default/viewer.htm#etsug_nlomet_sect006.htm
 
     # solve matrix for s2 direction quasi-Newton search direction
