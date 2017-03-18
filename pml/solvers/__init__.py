@@ -182,7 +182,6 @@ def doglegm(r, g, d, delta):
     :return:
     """
 
-    # https://github.com/dkogan/libdogleg/blob/master/dogleg.c
     # http://support.sas.com/documentation/cdl/en/etsug/60372/HTML/default/viewer.htm#etsug_nlomet_sect006.htm
 
     # solve matrix for s2 direction quasi-Newton search direction

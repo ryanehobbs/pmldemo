@@ -9,7 +9,7 @@ def sigmoid(z):
     by -1 and 1 and crosses 0.5.  Typically used
     as an activation function
     :param z: z can be a matrix, vector or scalar
-    :return:
+    :return: Value between 0 and 1
     """
 
     # calculate sigmoid curve g(z) = 1/(1+e^-z)

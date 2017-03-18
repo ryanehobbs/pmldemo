@@ -1,19 +1,18 @@
 import numpy as np
 import numbers
-import preprocessing
 import six
 from abc import ABCMeta, abstractmethod
 
 ALPHA_MIN = 0.0001
 ALPHA_MAX = 10
 
-class Linear(six.with_metaclass(ABCMeta)):
+class LinearBase(six.with_metaclass(ABCMeta)):
     """
     Base class for linear regression models.Implemented as a MixIn
     """
     __metaclass__ = ABCMeta
 
-    def __init__(self, normalize=False, solver="linear", iterations=10, alpha=0.001, lambda_r=None):
+    def __init__(self, normalize=False, solver=None, **kwargs):
         """
         Base class for linear model regression calculations
         :param normalize: (Default: False) Scale features in training data if they differ in order of magnitude
@@ -23,12 +22,22 @@ class Linear(six.with_metaclass(ABCMeta)):
         :param alpha: Learning rate to use when performing loss calculations
         """
 
+        # solver must be defined else raise exception
+        if not solver:
+            raise Exception("Solver must be defined, solver parameter set to {}".format(solver))
+
         # normalize only if using gradient descent always default to False
         self.normalize = normalize if solver != 'normal' else False
-        self.include_bias = True  # TODO: refactor the args
+        # set the solver type logistic or linear
         self.solver = solver
-        self.iterations = iterations
-        self.lambda_r = lambda_r or 1
+        # True or False include bias column (1's) y-intercept
+        self.include_bias = kwargs.get("include_bias", True)
+        # Set max iterations to execute min cost routine
+        self.iterations = kwargs.get("max_iter", 10)
+        # Regularization parameter to use when evaluating cost function
+        self.lambda_r = kwargs.get("lambda_r", 0)
+        # Set learning rate for use by gradient descent
+        alpha = kwargs.get("alpha", 0.001)
 
         # ensure alpha (learning rate) conforms to 0.001 < alpha < 10
         if ALPHA_MIN < alpha < ALPHA_MAX:
@@ -36,6 +45,20 @@ class Linear(six.with_metaclass(ABCMeta)):
         else:
             print("Learning rate (alpha) does not fit within range 0.001 < alpha < 10 defaulting to 0.01")
             self.alpha = 0.01
+
+    def __str__(self):
+
+        return self.solver
+
+    @abstractmethod
+    def predict(self, X):
+        """"""
+        pass
+
+    @abstractmethod
+    def cost_calc(self, X, y, theta):
+        """"""
+        pass
 
     @abstractmethod
     def fit(self, X, y):
@@ -59,6 +82,10 @@ class Linear(six.with_metaclass(ABCMeta)):
         """
 
         return self.docalc_slope(X, theta)
+
+    def calculate_cost(self, X, y, theta):
+
+        return self.cost_calc(X, y, theta)
 
     def _pre_fit(self, X, y, theta=None):
         """
@@ -104,12 +131,19 @@ class Linear(six.with_metaclass(ABCMeta)):
 
         return X, y
 
-    @abstractmethod
-    def predict(self, X):
-        """"""
-        pass
+class LinearMixin(LinearBase):
+    """Abstract mixin class for use by Linear Regression models"""
+    __metaclass__ = ABCMeta
 
-    def __predictN(self, X):
+    def __str__(self):
+
+        return self.solver
+
+    def __repr__(self):
+
+        return self.solver
+
+    def predictN(self, X):
         """
         Method that will perform Normalized prediction.  This method assumes you are passing in
         an array that matches the cound of feature parameters to test against.
@@ -121,6 +155,7 @@ class Linear(six.with_metaclass(ABCMeta)):
             X_sub = X-self.mu_  # 0-dim array (n,)
         else:
             X_sub = X[:,1:]-self.mu_   # n x 1 dim array (n,1)
+
         # divide mean by std_dev
         X = np.divide(X_sub, self.sigma_)
 
@@ -132,9 +167,8 @@ class Linear(six.with_metaclass(ABCMeta)):
 
         return X
 
-class LinearMixin(Linear):
-    """Abstract mixin class for use by Linear Regression models"""
-    __metaclass__ = ABCMeta
+
+
 
 
 
