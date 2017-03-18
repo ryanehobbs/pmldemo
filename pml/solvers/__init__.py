@@ -1,7 +1,6 @@
 import math
 import numpy as np
 
-
 def _sumsq(X):
     """
     Helper function to calculate sum of squares of a vector or matrix
@@ -10,6 +9,51 @@ def _sumsq(X):
     """
 
     return np.sum(np.power(X, 2))
+
+def fmincg(costfunc, X, y, initial_theta, **kwargs):
+    """
+    Minimize a differentiable multivariate function. Implementation
+    from Carl Edward Rasmussen (2006-09-08).
+    :param costfunc:
+    :param X:
+    :param y:
+    :param initial_theta:
+    :param kwargs:
+    :return:
+    """
+
+    _RHO = 0.01    # Wolfe-Powell condition minimum allowed fraction of the expected slope
+    _SIG = _RHO/2  # Wolfe-Powell condition maximum allowed absolute ratio between previous and new slopes
+    _INT = 0.1     # don't reevaluate within 0.1 of the limit of the current bracket
+    _EXT = 3.0     # extrapolate maximum 3 times the current bracket
+    _MAX = 20      # max 20 function evaluations per line search
+    _RATIO = 100   # maximum allowed slope ratio
+
+    max_iter = kwargs.get('max_iter', 400)  # max iterations to process
+    max_evals = kwargs.get('max_evals', math.inf)  # max function evaluations
+    grad_obj = kwargs.get('grad_obj', False)  # solve the gradient objective equation
+    lambda_r = kwargs.get('lambda_r', 0)  #
+
+    red = 1  # FIXME: not sure about this assignment
+    if max_iter == 1:
+        red = 1
+    elif max_iter == 2:
+        red = 2
+
+    y = y.astype(int)
+    # call into cost function to set up initial values
+    cost_outer, grad = costfunc(X, y, initial_theta)
+    # epoch count
+    epoch = 0 + (max_iter < 0)
+    # search direction is steepest
+    search_direction = -grad
+    # slope
+    slope = np.multiply(-search_direction.T, search_direction)
+    # get initial step
+    initial_step = red / 1 - slope
+
+
+    print("Done")
 
 def fminfunc(costfunc, X, y, initial_theta, **kwargs):
     """

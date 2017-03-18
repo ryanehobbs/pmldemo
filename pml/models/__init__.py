@@ -1,6 +1,7 @@
 import numpy as np
 import numbers
 import six
+from solvers import fmincg
 from abc import ABCMeta, abstractmethod
 
 ALPHA_MIN = 0.0001
@@ -166,6 +167,30 @@ class LinearMixin(LinearBase):
                 X = np.insert(X, 0, 1, axis=1)
 
         return X
+
+    def one_vs_all(self, X, y, initial_theta, num_of_labels):
+        """
+        Support multi-class training. Trains multiple logistic regression classifiers.
+        Uses one vs. all (OvA) or called one vs. rest OvR.
+        https://en.wikipedia.org/wiki/Multiclass_classification
+        :param X:
+        :param y:
+        :param num_of_labels:
+        :return:
+        """
+
+        m = np.size(X, axis=0)
+        n = np.size(X, axis=1)
+
+        ova_theta = np.zeros((num_of_labels, n + 1))
+
+        for i in range(1, num_of_labels):
+            ova_theta[i, :] = fmincg(self.cost_calc, X, np.equal(y, i),
+                                     initial_theta=self.theta_,
+                                     alpha=self.alpha,
+                                     max_iter=self.iterations)
+
+        return ova_theta
 
 
 

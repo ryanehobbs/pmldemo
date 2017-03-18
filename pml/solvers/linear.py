@@ -82,3 +82,4 @@ def gradient_descent(X, y, theta, linearclass, alpha=0.001, max_iter=10):
             raise Exception("Linear model class type unknown '{}' ".format(linearclass))
 
     return theta, cost_gradient
+

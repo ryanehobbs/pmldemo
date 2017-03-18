@@ -113,7 +113,7 @@ class Logistic(LinearMixin):
 
     __metaclass__ = LinearMixin
 
-    def __init__(self, normalize=False, solver='logistic', **kwargs):
+    def __init__(self, normalize=False, solver='logistic', num_of_labels=0, **kwargs):
         """
         Create a linear model class for performing regression analysis
         :param normalize: (Default: False) Scale features in training data if they differ in order of magnitude
@@ -122,6 +122,10 @@ class Logistic(LinearMixin):
         :param iterations: Number of iterations to perform on training set
         :param alpha: Learning rate to use when performing loss calculations
         """
+
+        if num_of_labels > 0 and isinstance(num_of_labels, int):
+            self.num_of_labels = int(num_of_labels)
+            self.multiclass = True
 
         # call base class ctor
         super(Logistic, self).__init__(normalize, solver, **kwargs)
@@ -193,12 +197,14 @@ class Logistic(LinearMixin):
         # pre fit data with theta params and bias if included
         X, y = self._pre_fit(X, y, theta)
 
-        # FIXME: A linear gradient descent model does not do well in predicting values
-        # check solver type
-        self.theta1_, self.grad_ = fminfunc(self.cost_calc, X, y,
-                                              self.theta_, alpha=self.alpha,
-                                              max_iter=self.iterations)
-        self.theta2_, self.grad_ = ls.gradient_descent(X, y, self.theta_, linearclass=self, alpha=self.alpha, max_iter=self.iterations, )
+        if self.multiclass:
+            self.theta_ = self.one_vs_all(X, y, self.theta_, self.num_of_labels)
+        else:
+            # check solver type
+            self.theta, self.grad_ = fminfunc(self.cost_calc, X, y,
+                                                  self.theta_, alpha=self.alpha,
+                                                  max_iter=self.iterations)
+            #self.theta2_, self.grad_ = ls.gradient_descent(X, y, self.theta_, linearclass=self, alpha=self.alpha, max_iter=self.iterations)
 
     def predict(self, X):
         """
