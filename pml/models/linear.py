@@ -143,6 +143,8 @@ class Logistic(LinearMixin):
         # the function J(theta) = 1/m * sum(-y .* log(h_thetaX) - (1 - y) .* log(1-h_thetaX))
         # where the h_thetaX is the linear model h_theta = theta0 + theta1 * X1
 
+
+
         # reset class theta if theta is not None
         if theta is not None:
             self.theta_ = theta
@@ -159,14 +161,19 @@ class Logistic(LinearMixin):
         # calculate the minimized objective cost function for logistic regression
         j_cost = (1/n_samples) * np.sum(np.multiply(-y, np.log(hX)) - np.multiply((1-y), np.log(1-hX))) + (self.lambda_r / (2 * n_samples) * np.sum(np.power(theta[1:], 2)))
 
+        # TODO: TEMP
+        grad = np.dot(((1/n_samples) * np.transpose(X)), hX - y)
+        # TODO: TEMP
+        grad = grad + ((self.lambda_r/n_samples) * theta[:])
+
         # colum vector blah = np.array(X[:,[0]])
-        for i in range(0, n_samples):
-            grad = grad + (hX[i] - y[i]) * np.array(X[i:i+1, ]).T
+        ##for i in range(0, n_samples):
+        ##    grad = grad + (hX[i] - y[i]) * np.array(X[i:i+1, ]).T
 
         # grad_reg = lambda_r / n_samples * theta[2:] TODO: << this may need to be changed back for now get entire array
-        grad_reg = self.lambda_r / n_samples * theta[:]
+        ##grad_reg = self.lambda_r / n_samples * theta[:]
         # finalize gradient calculation for cost
-        grad = (1/n_samples) * grad + grad_reg
+        ##grad = (1/n_samples) * grad + grad_reg
 
         return j_cost, grad
 
@@ -182,7 +189,7 @@ class Logistic(LinearMixin):
         hX = np.reshape(hX, (hX.shape[0], -1))  # make it a nx1 dim vector
         return hX
 
-    def fit(self, X, y, theta=None):
+    def fit(self, X, y, theta=None, lambda_r=None):
         """
 
         :param X:
@@ -193,6 +200,9 @@ class Logistic(LinearMixin):
 
         if theta is not None and np.atleast_1d(theta).ndim > 1:
             raise ValueError("Sample weights must be 1D array or scalar")
+
+        if lambda_r:  # override lambda_r set in class
+            self.lambda_r = lambda_r
 
         # pre fit data with theta params and bias if included
         X, y = self._pre_fit(X, y, theta)

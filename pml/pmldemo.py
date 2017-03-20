@@ -56,12 +56,13 @@ def demo_multiclass():
 
     import numpy as np
     X, y = data.load_matdata(file_name='samples/ex3data1.mat')
-    logistic_model = linear.Logistic(solver='logistic', normalize=False, num_of_labels=10, max_iter=400, lambda_r=3)
+    logistic_model = linear.Logistic(solver='logistic', normalize=False, num_of_labels=10, max_iter=50, lambda_r=3)
 
     theta_t = [-2, -1, 1, 2]
     X_t = np.arange(1,16).reshape(5,-1, order='F')/10
     y_t = np.array([[1],[0],[1],[0],[1]])
-    logistic_model.fit(X_t, y_t, theta_t)
+    #logistic_model.fit(X_t, y_t, theta_t)
+    logistic_model.fit(X, y, lambda_r=0.10)
     cost = logistic_model.predict(theta_t)
 
     #fprintf('\nCost: %f\n', J);

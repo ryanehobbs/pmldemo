@@ -23,7 +23,7 @@ def fmincg(costfunc, X, y, initial_theta, **kwargs):
     """
 
     _RHO = 0.01    # Wolfe-Powell condition minimum allowed fraction of the expected slope
-    _SIG = _RHO/2  # Wolfe-Powell condition maximum allowed absolute ratio between previous and new slopes
+    _SIG = 0.5     # Wolfe-Powell condition maximum allowed absolute ratio between previous and new slopes
     _INT = 0.1     # don't reevaluate within 0.1 of the limit of the current bracket
     _EXT = 3.0     # extrapolate maximum 3 times the current bracket
     _MAX = 20      # max 20 function evaluations per line search
@@ -34,26 +34,162 @@ def fmincg(costfunc, X, y, initial_theta, **kwargs):
     grad_obj = kwargs.get('grad_obj', False)  # solve the gradient objective equation
     lambda_r = kwargs.get('lambda_r', 0)  #
 
-    red = 1  # FIXME: not sure about this assignment
-    if max_iter == 1:
+    if np.max(np.size(max_iter)) == 1:
         red = 1
-    elif max_iter == 2:
+    elif np.max(np.size(max_iter)) == 2:
         red = 2
 
     y = y.astype(int)
     # call into cost function to set up initial values
-    cost_outer, grad = costfunc(X, y, initial_theta)
+    cost, grad = costfunc(X, y, initial_theta)
     # epoch count
     epoch = 0 + (max_iter < 0)
+    # cost array
+    costX = np.empty((0,0))
     # search direction is steepest
     search_direction = -grad
     # slope
-    slope = np.multiply(-search_direction.T, search_direction)
+    #slope = np.sum(-search_direction * search_direction)
+    slope = np.dot(np.transpose(-search_direction), search_direction)
     # get initial step
-    initial_step = red / 1 - slope
+    initial_step = red / (1 - slope)
 
+    # copy and set current values suffix0
+    theta0 = theta = initial_theta
+    cost0 = cost
+    grad0 = grad
+    slope0 = slope
+    initial_step0 = initial_step
 
-    print("Done")
+    for i in range(0, np.abs(max_iter)):
+
+        # initialize quantities
+        success = 0
+        limit = -1
+
+        # set current values suffix0
+        #theta = theta0
+        #cost = cost0
+        #grad = grad0
+        #slope = slope0
+        #step = initial_step0
+
+        # increment count
+        i = i + (max_iter > 0)
+
+        # start the line search
+        theta = theta + np.multiply(initial_step0, search_direction)
+        # call into cost function
+        cost2, grad2 = costfunc(X, y, theta)
+        # calculate new slope
+        slope2 = np.dot(np.transpose(grad2), search_direction)
+        # initialize point 3 equal to point 1
+        cost3 = cost0
+        slope3 = slope0
+        initial_step3 = -initial_step0
+
+        if max_iter > 0:
+            M = _MAX
+        else:
+            M = min(_MAX, -max_iter-(i + 1))
+
+        while True:  # begin long running process
+            while ((cost2 > (cost0 + initial_step0 * _RHO * slope0) or slope2 > (-_SIG * slope0)) and (M > 0)):
+                limit = initial_step0  # tighten the bracket
+                if cost2 > cost0:  # quadratic fit
+                    offset = (0.5 * slope3 * np.power(initial_step3, 2)) / (slope3 * initial_step3 + cost2 - cost3)
+                    initial_step2 = initial_step3 - offset
+                else:  # cubic fit
+                    A = 6 * (cost2 - cost3) / initial_step3 + 3 * (slope2 + slope3)
+                    B = 3 * (cost3 - cost2) - initial_step3 * (slope3 + 2 * slope2)
+                    initial_step2 = (np.sqrt(B * B - A * slope2 * np.power(initial_step3, 2)) - B)/A
+                if np.isnan(initial_step2) or np.isinf(initial_step2):  # bisect if numerical problem
+                    initial_step2 = initial_step3 / 2
+
+                initial_step2 = max(min(initial_step2, _INT * initial_step3), (1 - _INT) * initial_step3)  # do not accept too close to limits
+                initial_step0 += initial_step2  # update the step
+                theta += initial_step2 * search_direction
+                cost2, grad2 = costfunc(X, y, theta)
+                M -= 1
+                i = i + (max_iter < 0)  # count epoch
+                slope2 = np.dot(np.transpose(grad2), search_direction)
+                initial_step3 -= initial_step2  # z3 is now relative to the location of z2
+
+            if cost2 > cost0 + initial_step0 + _RHO * slope0 or slope2 > -_SIG * slope0:
+                break  # this is a failure
+            elif slope2 > _SIG * slope0:
+                success = 1
+                break  # success
+            elif M == 0:
+                break  # failure
+
+            # cubic extrapolation
+            A = 6 * (cost2 - cost3) / initial_step3 + 3 * (slope2 + slope3)
+            B = 3 * (cost3 - cost2) - initial_step3 * (slope3 + 2 * slope2)
+            initial_step2 = -slope2 * np.power(initial_step3, 2) / (B + np.sqrt(B * B - A * slope2 * np.power(initial_step3, 2)))
+
+            if not np.isreal(initial_step2) or np.isnan(initial_step2) or np.isinf(initial_step2) or initial_step2 < 0:  # num prob or wrong sign?
+                if limit < - 0.5:  # if we have no upper limit
+                    initial_step2 = initial_step0 * (_EXT - 1)  # the extrapolate the maximum amount
+                else:
+                    initial_step2 = (limit - initial_step0) / 2  # otherwise bisect
+            elif limit > -0.5 and initial_step2 + initial_step0 > limit:  # extraplation beyond max?
+                initial_step2 = limit - initial_step0 / 2  # bisect
+            elif limit < -0.5 and initial_step2 + initial_step0 > initial_step0 * _EXT:  # extrapolation beyond limit
+                initial_step2 = initial_step0 * (_EXT - 1)  # set to extrapolation limit
+            elif initial_step2 < initial_step3 * _INT:
+                initial_step2 = -initial_step3 * _INT
+            elif limit > -0.5 and initial_step2 < ((limit - initial_step0) * (1 - _INT)):  # too close to limit?
+                initial_step2 = (limit - initial_step0) * (1 - _INT)
+
+            # set point 3 equal to point 2
+            cost3 = cost2
+            slope3 = slope2
+            initial_step3 = -initial_step2
+
+            # update estimates
+            initial_step0 += initial_step2
+            theta += initial_step2 * search_direction
+            cost2, grad2 = costfunc(X, y, theta)
+            M -= 1
+            i += 1  # count epoch
+            #slope2 = np.sum(grad2 * search_direction)
+            slope2 = np.dot(np.transpose(grad2), search_direction)
+            #  end of line search
+
+        if success:  # line search succeeded
+            cost0 = cost2
+            costX = np.array([cost0]).T
+            # Polack-Ribiere direction
+            search_direction = (np.dot(np.transpose(grad2), grad2) - np.dot(np.transpose(grad0), grad2)) / \
+                               (np.dot(np.transpose(grad0), grad0)) * search_direction - grad2
+            #search_direction = np.sum(grad2 * grad2 - grad0) * grad2 / np.sum(np.power(np.transpose(grad0), 2)) * search_direction - grad2
+            grad0, grad2 = grad2, grad0  # swap derivatives
+            #slope2 =  np.sum(grad0 * search_direction)
+            slope2 = np.dot(np.transpose(grad0), search_direction)
+            if slope2 > 0:
+                search_direction = -grad0
+                #slope2 = np.sum(-search_direction * search_direction)
+                slope2 = np.dot(np.transpose(-search_direction), search_direction)
+            initial_step0 *= min(_RATIO, slope0/(slope2-np.finfo(np.double).tiny))  # slope ratio but max RATIO
+            slope0 = slope2
+            ls_failed = 0  # this line search did not fail
+        else:  # restore point from before failed line search
+            theta = theta0
+            cost = cost0
+            grad = grad0
+            slope = slope0
+            step = initial_step0
+            if ls_failed or i > abs(max_iter):  # line search failed twice in a row
+                continue  # or we ran out of time, so we give up
+            grad0, grad2 = grad2, grad0  # swap derivatives
+            search_direction = -grad0  # try steepest
+            #slope0 = -search_direction * search_direction
+            slope0 = np.dot(np.transpose(-search_direction), search_direction)
+            initial_step0 = 1/(1-slope0)
+            ls_failed = 1  # this line search failed
+
+    return theta, costX, i
 
 def fminfunc(costfunc, X, y, initial_theta, **kwargs):
     """
