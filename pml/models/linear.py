@@ -163,8 +163,8 @@ class Logistic(LinearMixin):
 
         # TODO: TEMP
         grad = np.dot(((1/n_samples) * np.transpose(X)), hX - y)
-        # TODO: TEMP
-        grad = grad + ((self.lambda_r/n_samples) * theta[:])
+        # TODO: TEMP grad = grad + ((lambda/m) * [temp_onetheta;temp_theta]);
+        grad = grad + np.dot((self.lambda_r/n_samples), theta[:])
 
         # colum vector blah = np.array(X[:,[0]])
         ##for i in range(0, n_samples):

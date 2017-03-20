@@ -130,7 +130,7 @@ class LinearBase(six.with_metaclass(ABCMeta)):
             self.bias_ = np.ones((n_samples, 1))
             X = np.insert(X, 0, self.bias_.T, axis=1)
 
-        return X, y
+        return X.astype(dtype=np.double), y.astype(dtype=np.double)
 
 class LinearMixin(LinearBase):
     """Abstract mixin class for use by Linear Regression models"""
