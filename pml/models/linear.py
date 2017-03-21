@@ -4,6 +4,8 @@ import solvers.linear as ls
 from solvers import fminfunc
 import mathutils.sigmoid as sigmoid
 
+np.seterr(invalid='ignore')
+
 class Linear(LinearMixin):
 
     __metaclass__ = LinearMixin
@@ -123,6 +125,8 @@ class Logistic(LinearMixin):
         :param alpha: Learning rate to use when performing loss calculations
         """
 
+        self.multiclass = False
+
         if num_of_labels > 0 and isinstance(num_of_labels, int):
             self.num_of_labels = int(num_of_labels)
             self.multiclass = True
@@ -143,13 +147,9 @@ class Logistic(LinearMixin):
         # the function J(theta) = 1/m * sum(-y .* log(h_thetaX) - (1 - y) .* log(1-h_thetaX))
         # where the h_thetaX is the linear model h_theta = theta0 + theta1 * X1
 
-
-
         # reset class theta if theta is not None
         if theta is not None:
             self.theta_ = theta
-
-        grad = np.zeros((theta.shape[0], 1))
 
         # suppress RuntimeWarning: overflow encountered due to NaN
         np.seterr(divide='ignore')
@@ -159,21 +159,13 @@ class Logistic(LinearMixin):
         # fit intercept for linear equation this is the hypothesis
         hX = self.docalc_slope(X, theta)
         # calculate the minimized objective cost function for logistic regression
-        j_cost = (1/n_samples) * np.sum(np.multiply(-y, np.log(hX)) - np.multiply((1-y), np.log(1-hX))) + (self.lambda_r / (2 * n_samples) * np.sum(np.power(theta[1:], 2)))
+        j_cost = (1/n_samples) * np.sum(np.multiply(-y, np.log(hX)) - np.multiply((1-y), np.log(1-hX))) + \
+                 (self.lambda_r / (2 * n_samples) * np.sum(np.power(theta[1:], 2)))
 
-        # TODO: TEMP
-        grad = np.dot(((1/n_samples) * np.transpose(X)), hX - y)
-        # TODO: TEMP grad = grad + ((lambda/m) * [temp_onetheta;temp_theta]);
+        # calculate cost gradient
+        grad = np.dot(((1/n_samples) * X.T), hX - y)
+        # calculate cost gradient with regularization
         grad = grad + np.dot((self.lambda_r/n_samples), theta[:])
-
-        # colum vector blah = np.array(X[:,[0]])
-        ##for i in range(0, n_samples):
-        ##    grad = grad + (hX[i] - y[i]) * np.array(X[i:i+1, ]).T
-
-        # grad_reg = lambda_r / n_samples * theta[2:] TODO: << this may need to be changed back for now get entire array
-        ##grad_reg = self.lambda_r / n_samples * theta[:]
-        # finalize gradient calculation for cost
-        ##grad = (1/n_samples) * grad + grad_reg
 
         return j_cost, grad
 

@@ -62,7 +62,7 @@ def demo_multiclass():
     X_t = np.arange(1,16).reshape(5,-1, order='F')/10
     y_t = np.array([[1],[0],[1],[0],[1]])
     #logistic_model.fit(X_t, y_t, theta_t)
-    logistic_model.fit(X, y, lambda_r=0.10)
+    logistic_model.fit(X, y, lambda_r=0.1)
     cost = logistic_model.predict(theta_t)
 
     #fprintf('\nCost: %f\n', J);
@@ -76,11 +76,11 @@ if __name__ == '__main__':
     """Main function for console application"""
 
     # plot classification data
-    #demo_preprocessing()
-    #demo_newmultilinear()
-    #demo_newlinear()
-    #demo_newlogistic()
-    #demo_logisticreg()
+    demo_preprocessing()
+    demo_newmultilinear()
+    demo_newlinear()
+    demo_newlogistic()
+    demo_logisticreg()
     demo_multiclass()
 
 
