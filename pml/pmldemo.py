@@ -56,15 +56,22 @@ def demo_multiclass():
 
     import numpy as np
     X, y = data.load_matdata(file_name='samples/ex3data1.mat')
-    logistic_model = linear.Logistic(solver='logistic', normalize=False, max_iter=400, lambda_r=3)
+    logistic_model = linear.Logistic(solver='logistic', normalize=False, num_of_labels=10, max_iter=50, lambda_r=3)
 
-    theta_t = [-2, -1, 1, 2]
-    X_t = np.arange(1,16).reshape(5,-1, order='F')/10
-    y_t = np.array([[1],[0],[1],[0],[1]])
-    logistic_model.fit(X_t, y_t, theta_t)
-    cost = logistic_model.predict(theta_t)
+    logistic_model.fit(X, y, lambda_r=0.1)
 
-    #fprintf('\nCost: %f\n', J);
+    pred = logistic_model.predict(X)
+    print('Training Set Accuracy: {}%'.format(np.mean(np.double(pred == y)) * 100))
+
+    # FIXME: Need to have a common way of calling into cost calc and fit and do the right thing
+    # should this be class vars or should they be defined at the methods themselves
+    #theta_t = [-2, -1, 1, 2]
+    #X_t = np.arange(1,16).reshape(5,-1, order='F')/10
+    #y_t = np.array([[1],[0],[1],[0],[1]])
+    #J, grad = logistic_model.cost_calc(X_t, y_t, theta_t, lambda_r=3)
+    #logistic_model.fit(X_t, y_t, theta_t, lambda_r=3, num_of_labels=0)
+    #print("Done")
+    #print('Cost: %f\n', J);
     #fprintf('Expected cost: 2.534819\n');
     #fprintf('Gradients:\n');
     #fprintf(' %f \n', grad);
