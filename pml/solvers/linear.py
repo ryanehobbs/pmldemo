@@ -71,7 +71,7 @@ def gradient_descent(X, y, theta, linearclass, alpha=0.001, max_iter=10):
         theta = theta  # use values passed in
 
     for i in range(0, max_iter):
-        loss = linearclass.calculate_slope(X, theta) - y
+        loss = linearclass.calculate_hypothesis(X, theta) - y
         gradient = np.dot(X.T, loss) / n_samples
         theta -= alpha * gradient  # update
         if repr(linearclass) == Models.LINEAR.value:

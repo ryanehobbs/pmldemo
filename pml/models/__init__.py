@@ -1,11 +1,11 @@
 import numpy as np
 import numbers
 import six
+from mathutils import sigmoid
 from solvers import fmincg
 from abc import ABCMeta, abstractmethod
 
-ALPHA_MIN = 0.0001
-ALPHA_MAX = 10
+
 
 class LinearBase(six.with_metaclass(ABCMeta)):
     """
@@ -36,17 +36,6 @@ class LinearBase(six.with_metaclass(ABCMeta)):
         self.include_bias = kwargs.get("include_bias", True)
         # Set max iterations to execute min cost routine
         self.iterations = kwargs.get("max_iter", 10)
-        # Regularization parameter to use when evaluating cost function
-        self.lambda_r = kwargs.get("lambda_r", 0)
-        # Set learning rate for use by gradient descent
-        alpha = kwargs.get("alpha", 0.001)
-
-        # ensure alpha (learning rate) conforms to 0.001 < alpha < 10
-        if ALPHA_MIN < alpha < ALPHA_MAX:
-            self.alpha = alpha
-        else:
-            print("Learning rate (alpha) does not fit within range 0.001 < alpha < 10 defaulting to 0.01")
-            self.alpha = 0.01
 
     def __str__(self):
 
@@ -58,36 +47,51 @@ class LinearBase(six.with_metaclass(ABCMeta)):
         pass
 
     @abstractmethod
-    def cost_calc(self, X, y, theta):
+    def cost(self, X, y, theta=None, lambda_r=0):
         """"""
         pass
 
     @abstractmethod
-    def fit(self, X, y):
+    def train(self, X, y):
         """Abstract fitting method must be implemented in subclass"""
         pass
 
     @abstractmethod
-    def docalc_slope(self, X, theta):
+    def _hypothesize(self, X, theta):
         """Abstract slope calculation method must be implemented in subclass"""
         pass
 
-    def calculate_slope(self, X, theta):
+    def calculate_hypothesis(self, X, theta):
         """
         Perform slope calculation by multiplying the nx1 vector (theta params) with the matrix X.
-        Used primarily for peforming both cost calculations and gradient descent.  Method employs
-        a GoF Template pattern which allows the linear subclass types to override.
-        https://en.m.wikipedia.org/wiki/Template_method_pattern
+        Used primarily for peforming both cost calculations and gradient descent.
         :param X: array-like Array[n_samples, n_features] Training data
         :param theta: array-like Vector[n_features]  coefficient parameters
         :return: Linear equation slope calculation
         """
 
-        return self.docalc_slope(X, theta)
+        # Method employs a GoF Template pattern which allows the
+        # linear subclass types to override.
+        # https://en.m.wikipedia.org/wiki/Template_method_pattern
+
+        return self._hypothesize(X, theta)
 
     def calculate_cost(self, X, y, theta):
+        """
+        Perform cost minimization between training data and labels with weights.  This
+        is an objective function that will return the minimized cost based upon
+        a weighted prediction and the actual class label.
+        :param X:
+        :param y:
+        :param theta:
+        :return:
+        """
 
-        return self.cost_calc(X, y, theta)
+        # Method employs a GoF Template pattern which allows the
+        # linear subclass types to override.
+        # https://en.m.wikipedia.org/wiki/Template_method_pattern
+
+        return self.cost(X, y, theta)
 
     def _pre_fit(self, X, y, theta=None):
         """
@@ -171,7 +175,26 @@ class LinearMixin(LinearBase):
 
         return X
 
-    def one_vs_all(self, X, y, initial_theta, num_of_labels):
+    def predictOVA(self, X):
+        """
+
+        :param X:
+        :return:
+        """
+
+        hX = self._hypothesize(X, self.theta_.T)
+        # return the indice(index) of array that contains the larget value
+        indice_array = np.argmax(hX, 1)
+        # make this a n x 1 dimensional array
+        indice_array = indice_array[:, None]
+        # return an array of indices (rows)
+        #r, c = np.indices((indice_array.size, 1))
+        # we add 1 because y labels are 1 - 10, but python array indexes are 0 - 9
+        #np.add.at(indice_array, r, 1)
+
+        return indice_array
+
+    def one_vs_all(self, X, y, initial_theta, num_of_labels, **kwargs):
         """
         Support multi-class training. Trains multiple logistic regression classifiers.
         Uses one vs. all (OvA) or called one vs. rest OvR.
@@ -182,16 +205,24 @@ class LinearMixin(LinearBase):
         :return:
         """
 
+        blah = np.atleast_1d(initial_theta).ndim
+        if initial_theta is not None and np.atleast_1d(initial_theta).ndim < 1:
+            raise ValueError("Sample weights must be 1D array or scalar")
+
+        # Set learning rate for use by gradient descent
+        alpha = kwargs.get("alpha", 0.001)
+        iterations = kwargs.get("iterations", self.iterations)
+
         n = np.size(X, axis=1)
 
         ova_theta = np.zeros((num_of_labels, n))
 
         for i in range(0, num_of_labels):
             y_idx = i + 1
-            theta, _, _ = fmincg(self.cost_calc, X, (y == y_idx), #np.equal(y, y_idx),
-                                     initial_theta=self.theta_,
-                                     alpha=self.alpha,
-                                     max_iter=self.iterations)
+            theta, _, _ = fmincg(self.cost, X, (y == y_idx),
+                                     initial_theta=initial_theta,
+                                     alpha=alpha,
+                                     max_iter=iterations)
             ova_theta[i, :] = theta.T
 
         return ova_theta

@@ -218,6 +218,7 @@ def fminfunc(costfunc, X, y, initial_theta, **kwargs):
     max_iter = kwargs.get('max_iter', 400)  # max iterations to process
     max_evals = kwargs.get('max_evals', math.inf)  # max function evaluations
     grad_obj = kwargs.get('grad_obj', False)  # solve the gradient objective equation
+    lambda_r = kwargs.get('lambda_r', 0)  # get the regularization parameter
 
     tolf = 1e-7  # tolerance for the objective function value
     tolx = 1e-7  # termination tolerance for the unknown variables
