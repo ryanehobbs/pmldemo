@@ -13,6 +13,7 @@ class LinearBase(six.with_metaclass(ABCMeta)):
     """
     __metaclass__ = ABCMeta
 
+    fitted = False
     def __init__(self, normalize=False, solver=None, **kwargs):
         """
         Base class for linear model regression calculations
@@ -130,6 +131,8 @@ class LinearBase(six.with_metaclass(ABCMeta)):
             self.bias_ = np.ones((n_samples, 1))
             X = np.insert(X, 0, self.bias_.T, axis=1)
 
+        self.fitted = True
+
         return X, y
 
 class LinearMixin(LinearBase):
@@ -179,16 +182,17 @@ class LinearMixin(LinearBase):
         :return:
         """
 
-        m = np.size(X, axis=0)
         n = np.size(X, axis=1)
 
-        ova_theta = np.zeros((num_of_labels, n + 1))
+        ova_theta = np.zeros((num_of_labels, n))
 
-        for i in range(1, num_of_labels):
-            ova_theta[i, :] = fmincg(self.cost_calc, X, np.equal(y, i),
+        for i in range(0, num_of_labels):
+            y_idx = i + 1
+            theta, _, _ = fmincg(self.cost_calc, X, (y == y_idx), #np.equal(y, y_idx),
                                      initial_theta=self.theta_,
                                      alpha=self.alpha,
                                      max_iter=self.iterations)
+            ova_theta[i, :] = theta.T
 
         return ova_theta
 

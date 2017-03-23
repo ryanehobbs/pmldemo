@@ -1,6 +1,6 @@
 import math
 import numpy as np
-from copy import deepcopy
+import sys
 
 def _sumsq(X):
     """
@@ -70,6 +70,7 @@ def fmincg(costfunc, X, y, initial_theta, **kwargs):
         # set current values suffix0 X0 = X; f0 = f1; df0 = df1;
         cost0 = cost1
         grad0 = grad1
+        theta0 = theta
 
         # increment count
         i = i + (max_iter > 0)
@@ -123,7 +124,7 @@ def fmincg(costfunc, X, y, initial_theta, **kwargs):
                 success = 1
                 break  # success
             elif M == 0:
-                break  # failure
+                break  # this is a failure
 
             # cubic extrapolation
             A = 6 * (cost2 - cost3) / initial_step3 + 3 * (slope2 + slope3)
@@ -161,7 +162,7 @@ def fmincg(costfunc, X, y, initial_theta, **kwargs):
         if success:  # line search succeeded
             cost1 = cost2
             costX.append(cost1)
-            print("Iteration %d | Cost: %4.6E\r" % (i, cost1))
+            #print("Iteration %d | Cost: %4.6E" % (i, cost1), end='\n')
             # Polack-Ribiere direction
             search_direction = (np.dot(grad2.T, grad2) - np.dot(grad1.T, grad2)) / \
                                (np.dot(grad1.T, grad1)) * search_direction - grad2
@@ -174,7 +175,7 @@ def fmincg(costfunc, X, y, initial_theta, **kwargs):
             slope1 = slope2
             ls_failed = 0  # this line search did not fail
         else:  # restore point from before failed line search X = X0; f1 = f0; df1 = df0
-            theta = initial_theta
+            theta = theta0
             cost1 = cost0
             grad1 = grad0
             if ls_failed or i > abs(max_iter):  # line search failed twice in a row

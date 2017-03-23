@@ -134,7 +134,7 @@ class Logistic(LinearMixin):
         # call base class ctor
         super(Logistic, self).__init__(normalize, solver, **kwargs)
 
-    def cost_calc(self, X, y, theta=None):
+    def cost_calc(self, X, y, theta=None, lambda_r=None):
         """
 
         :param X:
@@ -150,6 +150,16 @@ class Logistic(LinearMixin):
         # reset class theta if theta is not None
         if theta is not None:
             self.theta_ = theta
+        if not isinstance(theta, np.ndarray) and theta is not None:
+            theta = np.array(theta, dtype='f')[:, None]
+
+        # override lambda_r set in class
+        if lambda_r:
+            self.lambda_r = lambda_r
+
+        if not self.fitted:
+            # pre fit data with theta params and bias if included
+            X, y = self._pre_fit(X, y, theta)
 
         # suppress RuntimeWarning: overflow encountered due to NaN
         np.seterr(divide='ignore')
@@ -162,10 +172,10 @@ class Logistic(LinearMixin):
         j_cost = (1/n_samples) * np.sum(np.multiply(-y, np.log(hX)) - np.multiply((1-y), np.log(1-hX))) + \
                  (self.lambda_r / (2 * n_samples) * np.sum(np.power(theta[1:], 2)))
 
-        # calculate cost gradient
-        grad = np.dot(((1/n_samples) * X.T), hX - y)
-        # calculate cost gradient with regularization
-        grad = grad + np.dot((self.lambda_r/n_samples), theta[:])
+        grad = np.dot((1/n_samples) * X.T, hX - y)
+        #theta[0, 0] = 0  # FIXME: this can be used in one offs but not items already fitted
+        grad = grad + np.dot((self.lambda_r/n_samples), theta)
+        grad = grad[:]
 
         return j_cost, grad
 
@@ -196,8 +206,9 @@ class Logistic(LinearMixin):
         if lambda_r:  # override lambda_r set in class
             self.lambda_r = lambda_r
 
-        # pre fit data with theta params and bias if included
-        X, y = self._pre_fit(X, y, theta)
+        if not self.fitted:
+            # pre fit data with theta params and bias if included
+            X, y = self._pre_fit(X, y, theta)
 
         if self.multiclass:
             self.theta_ = self.one_vs_all(X, y, self.theta_, self.num_of_labels)
@@ -219,16 +230,32 @@ class Logistic(LinearMixin):
             raise RuntimeError("Instance is currently not fitted")
 
         X = np.array(X)
-        X.reshape((X.shape[0], 1))
+        X.reshape((X.shape[0], -1))
 
         if self.include_bias:
             # if 0-dim array we need to add bias if necessary
             if len(X.shape) != 2:  # insert col ones on axis 0
                 X = np.insert(X, 0, 1, axis=0)
+            elif X.shape[1] < self.theta_.shape[1]:
+                cols =  self.theta_.shape[1] - X.shape[1]
+                X = np.insert(X, 0, cols, axis=1)
 
-        blah1=np.sum(sigmoid.sigmoid(np.dot(X, self.theta_[:X.shape[0]])).astype(np.float32))
-        blah2=np.sum(sigmoid.sigmoid(np.dot(X, self.theta_[:X.shape[0]])).astype(np.float32))
+        if self.multiclass:
+            hX = sigmoid.sigmoid(np.dot(X, self.theta_.T))
+            # return the indice(index) of array that contains the larget value
+            indice_array = np.argmax(hX, 1)
+            # make this a n x 1 dimensional array
+            indice_array = indice_array[:, None]
+            # return an array of indices (rows)
+            r, c = np.indices((indice_array.size, 1))
+            # we add 1 because y labels are 1 - 10, but python array indexes are 0 - 9
+            np.add.at(indice_array, r, 1)
 
-        # hypothesis in logistic model: h_theta(x) = theta_zero + theta_one * x_one
-        return np.sum(sigmoid.sigmoid(np.dot(X, self.theta_[:X.shape[0]])).astype(np.float32))
+            return indice_array
+        else:
+            blah1=np.sum(sigmoid.sigmoid(np.dot(X, self.theta_[:X.shape[0]])).astype(np.float32))
+            blah2=np.sum(sigmoid.sigmoid(np.dot(X, self.theta_[:X.shape[0]])).astype(np.float32))
+
+            # hypothesis in logistic model: h_theta(x) = theta_zero + theta_one * x_one
+            return np.sum(sigmoid.sigmoid(np.dot(X, self.theta_[:X.shape[0]])).astype(np.float32))
 
