@@ -6,6 +6,7 @@ import six
 from abc import ABCMeta, abstractmethod
 from solvers import fmincg
 
+
 class LinearBase(six.with_metaclass(ABCMeta)):
     """
     Base class for linear regression models.Implemented as a MixIn
@@ -15,6 +16,7 @@ class LinearBase(six.with_metaclass(ABCMeta)):
     fitted_ = False  # True target and labels fitted with intercept
     X_ = []  # store target data in class instance
     y_ = []  # store y label data in class instance
+
     def __init__(self, normalize=False, solver=None, **kwargs):
         """
         Base class for linear model regression calculations
@@ -26,7 +28,8 @@ class LinearBase(six.with_metaclass(ABCMeta)):
 
         # solver must be defined else raise exception
         if not solver:
-            raise Exception("Solver must be defined, solver parameter set to {}".format(solver))
+            raise Exception(
+                "Solver must be defined, solver parameter set to {}".format(solver))
 
         # normalize only if using gradient descent always default to False
         self.normalize = normalize if solver != 'normal' else False
@@ -147,7 +150,7 @@ class LinearBase(six.with_metaclass(ABCMeta)):
         # refer to subclass to see actual implementation
         return self.cost(X, y, theta)
 
-    def _pre_fit(self, X, y, theta=None):
+    def pre_fit(self, X, y, theta=None):
         """
         Center data in linear model to zero along axis 0. If theta
         (sampled weights) are 0 then the weighted means of X and y is
@@ -170,18 +173,23 @@ class LinearBase(six.with_metaclass(ABCMeta)):
         # initialize parameters (theta) using supplied or set to zero
         if theta is None:
             if self.include_bias:
-                self.theta_ = np.zeros((n_features + 1, 1))  # initialize weights to zero include bias
+                # initialize weights to zero include bias
+                self.theta_ = np.zeros((n_features + 1, 1))
             else:
-                self.theta_ = np.zeros((n_features, 1))  # initialize weights to zero no bias
+                # initialize weights to zero no bias
+                self.theta_ = np.zeros((n_features, 1))
         else:
             self.theta_ = theta  # use values passed in
 
         if self.normalize:  # scale data
             self.mu_ = np.mean(X, axis=0)  # calc mean of training data
             self.sigma_ = np.std(X, axis=0)  # calc stddev of training data
-            tf_mu = X - np.kron(np.ones((X.shape[0], 1)), self.mu_)  # compute Kronecker product of X and Mu
-            tf_std = np.kron(np.ones((X.shape[0], 1)), self.sigma_)  # compute Kronecker product of X and sigma
-            X = np.divide(tf_mu, tf_std)  # divide feature values by their respective standard deviations
+            # compute Kronecker product of X and Mu
+            tf_mu = X - np.kron(np.ones((X.shape[0], 1)), self.mu_)
+            # compute Kronecker product of X and sigma
+            tf_std = np.kron(np.ones((X.shape[0], 1)), self.sigma_)
+            # divide feature values by their respective standard deviations
+            X = np.divide(tf_mu, tf_std)
 
         # if including bias (intercept) set first column to ones
         if self.include_bias:
@@ -194,6 +202,8 @@ class LinearBase(six.with_metaclass(ABCMeta)):
 
         return X, y
 
+
+# noinspection PyTypeChecker
 class LinearMixin(LinearBase):
     """Abstract mixin class for use by Linear Regression models"""
     __metaclass__ = ABCMeta
@@ -223,17 +233,18 @@ class LinearMixin(LinearBase):
         """
 
         if len(X.shape) != 2:
-            X_sub = X-self.mu_  # 0-dim array (n,)
+            X_sub = X - self.mu_  # 0-dim array (n,)
         else:
-            X_sub = X[:,1:]-self.mu_   # n x 1 dim array (n,1)
+            X_sub = X[:, 1:] - self.mu_   # n x 1 dim array (n,1)
 
         # divide mean by std_dev
         X = np.divide(X_sub, self.sigma_)
 
-        if self.include_bias: # if bias in dataset
+        if self.include_bias:  # if bias in dataset
             if len(X.shape) != 2:  # insert col ones on axis 0
                 X = np.insert(X, 0, 1, axis=0)
             else:  # insert col ones on axis 1
+                # noinspection PyTypeChecker
                 X = np.insert(X, 0, 1, axis=1)
 
         return X
@@ -247,7 +258,7 @@ class LinearMixin(LinearBase):
 
         hX = self._hypothesize(X, self.theta_.T)
         # return the indice(index) of array that contains the larget value
-        indice_array = np.argmax(hX, 1)
+        indice_array = np.argmax(hX, axis=1)
         # make this a n x 1 dimensional array
         indice_array = indice_array[:, None]
 
@@ -261,6 +272,7 @@ class LinearMixin(LinearBase):
         in a matrix ova_theta, where the i-th row of ova_theta corresponds to the classifier for label i
         :param X: array-like Array[n_samples, n_features] Training data
         :param y: np.ndarray Vector[n_samples] Training labels
+        :param initial_theta: rray-like Vector[n_features] coefficient parameters
         :param num_of_labels: Number of labels to train
         :return: array-like Array[classifiers] trained data
         """
@@ -280,17 +292,10 @@ class LinearMixin(LinearBase):
         # iterate over labels to train on
         for i in range(0, num_of_labels):
             theta, _, _ = fmincg(self.cost, X, (y == i),
-                                     initial_theta=initial_theta,
-                                     alpha=alpha,
-                                     max_iter=iterations)
+                                 initial_theta=initial_theta,
+                                 alpha=alpha,
+                                 max_iter=iterations)
             # set ova_theta i'th element to trained classifier labels
             ova_theta[i, :] = theta.T
 
         return ova_theta
-
-
-
-
-
-
-
