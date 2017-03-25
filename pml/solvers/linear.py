@@ -24,7 +24,7 @@ def linear_leastsquares(X, y):
 
     return theta
 
-def gradient_descent(X, y, theta, linearclass, alpha=0.001, max_iter=10):
+def gradient_descent(X, y, theta, linearclass, alpha=0.01, max_iter=10):
     """
     Perform gradient descent calculation against training data.
     Gradient descent is a first-order iterative optimization algorithm.

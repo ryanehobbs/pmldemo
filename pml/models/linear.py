@@ -1,17 +1,23 @@
-import numpy as np
-from models import LinearMixin
-import solvers.linear as ls
-from solvers import fminfunc
+"""Linear models, this is a subclass"""
 import mathutils.sigmoid as sigmoid
+import numpy as np
+import solvers.linear as ls
 from functools import wraps
+from models import LinearMixin
+from solvers import fminfunc
 
 # suppress RuntimeWarning: overflow encountered due to NaN
 np.seterr(divide='ignore', invalid='ignore')
 
-ALPHA_MIN = 0.0001
-ALPHA_MAX = 10
+ALPHA_MIN = 0.0001  # learning rate minimum
+ALPHA_MAX = 10  # learning rate maximum
 
 def fitdata(func):
+    """
+    Decorator for ensuring that data is fit properly before processing
+    :param func: Wrapped function
+    :return: Fitted data
+    """
 
     @wraps(func)
     def wrapper(*args, **kwargs):
@@ -19,19 +25,21 @@ def fitdata(func):
         xargs = list(args)
         # class reference is arg0
         klass = args[0]
+        # get the theta and refit values from kwargs
         theta = kwargs.get('theta', None)
         refit = kwargs.get('refit', False)
 
-        if len(args) == 3:
+        if len(args) == 3:  # only training and y label data present in args
             X = args[1]
             y = args[2]
-        elif len(args) == 4:
+        elif len(args) == 4:  # training, y label and theta params present
             X = args[1]
             y = args[2]
             theta = args[3]
-        elif len(args) < 3:
+        elif len(args) < 3:  # we need at least X and y to fit data
             raise Exception("Invalid arguments for pre-fitting data")
 
+        # check if class is fitted if not call prefit else pass through
         if not klass.fitted or refit:  # call base linear class _pre_fit method
             xargs[1], xargs[2] = klass._pre_fit(X, y, theta)
 
@@ -40,6 +48,7 @@ def fitdata(func):
     return wrapper
 
 class Linear(LinearMixin):
+    """Linear regression class model"""
 
     __metaclass__ = LinearMixin
     def __init__(self, normalize=False, solver=None, **kwargs):
@@ -60,9 +69,9 @@ class Linear(LinearMixin):
         Calculate the slope for the linear equation. This is also
         used as the method which will calculate the hypothesis for
         a linear model
-        :param X:
-        :param theta:
-        :return:
+        :param X: array-like Array[n_samples, n_features] Training data
+        :param theta: array-like Vector[n_features] coefficient parameters
+        :return: Linear equation slope calculation
         """
 
         hX = np.dot(X, theta)
@@ -102,7 +111,8 @@ class Linear(LinearMixin):
     @fitdata
     def train(self, X, y, theta=None, **kwargs):
         """
-        Fit training data against a linear regression model
+        Fit training data against a linear regression model. Train data to make
+        predictions.
         :param X: array-like Array[n_samples, n_features] Training data
         :param y: np.ndarray Vector[n_samples] Training labels
         :param theta: array-like Vector[n_features] coefficient parameters
@@ -118,10 +128,10 @@ class Linear(LinearMixin):
 
         # ensure alpha (learning rate) conforms to 0.001 < alpha < 10
         if ALPHA_MIN < alpha < ALPHA_MAX:
-            self.alpha = alpha
+            alpha = alpha
         else:
             print("Learning rate (alpha) does not fit within range 0.001 < alpha < 10 defaulting to 0.01")
-            self.alpha = 0.01
+            alpha = 0.01
 
         # check solver type
         if self.solver == 'linear':
@@ -129,23 +139,27 @@ class Linear(LinearMixin):
         elif self.solver == 'normal':
             self.theta_ = ls.linear_leastsquares(X, y)
 
-    def predict(self, X):
+    def predict(self, X, sum=False):
         """
         Predict outcomes using a linear model against training data
-
         :param X: array-like Array[n_samples, n_features] Training data
-        :return: Array [n_samples] predicted values
+        :param sum: True return a sum value and not a vector array. False return vector array
+        :return: Array [n_samples] predicted values or integer sum value
         """
 
-        # FIXME: predict can be used by itself if self.theta is populated or allow a theta value to
-        # be submitted
-
-        if not hasattr(self, 'theta_'):
+        if not self.fitted:
             raise RuntimeError("Instance is currently not fitted")
 
-        X = np.array(X)
+        if X is not None:
+            # Always cast target param X to a numpy array
+            X = np.array(X)
+            X.reshape((X.shape[0], -1))
+        elif self.X_data is not None and X is None:
+            X = self.X_data
+        else:
+            raise Exception("Unable to qualify training data X for predictions")
 
-        if self.normalize:  # predict based on normalized values
+        if self.normalize:  # predict based on scaled normalized values
             X = self.predictN(X)
         else:
             if self.include_bias:
@@ -153,13 +167,17 @@ class Linear(LinearMixin):
                 if len(X.shape) != 2:  # insert col ones on axis 0
                     X = np.insert(X, 0, 1, axis=0)
 
-        # hypothesis in linear model: h_theta(x) = theta_zero + theta_one * x_one
-        return np.sum(np.dot(X, self.theta_).astype(np.float32))
+        if sum:
+            # hypothesis in linear model: h_theta(x) = theta_zero + theta_one * x_one as sum
+            return np.sum(self._hypothesize(X, self.theta_).astype(np.float32))
+        else:
+            # hypothesis in linear model: h_theta(x) = theta_zero + theta_one * x_one as vector
+            return (self._hypothesize(X, self.theta_).astype(np.float32))
 
 class Logistic(LinearMixin):
+    """Logistic regression class model"""
 
     __metaclass__ = LinearMixin
-
     def __init__(self, normalize=False, solver='logistic', num_of_labels=0, **kwargs):
         """
         Create a linear model class for performing regression analysis
@@ -183,10 +201,10 @@ class Logistic(LinearMixin):
     def cost(self, X, y, theta=None, lambda_r=0, **kwargs):
         """
 
-        :param X:
-        :param y:
-        :param theta:
-        :return:
+        :param X: array-like Array[n_samples, n_features] Training data
+        :param y: np.ndarray Vector[n_samples] Training labels
+        :param theta: array-like Vector[n_features] coefficient parameters
+        :return: Tuple (int, array) cost value and array containing cost history
         """
 
         # The objective of linear regression is to minimize the cost function
@@ -204,18 +222,22 @@ class Logistic(LinearMixin):
         j_cost = (1/n_samples) * np.sum(np.multiply(-y, np.log(hX)) - np.multiply((1-y), np.log(1-hX))) + \
                  (lambda_r / (2 * n_samples) * np.sum(np.power(theta[1:], 2)))
 
+        # create a vector mask of zeros
         mask = np.ones((np.size(theta), 1))
         mask[0] = 0
+        # calculate cost gradient
         grad = np.divide(1, n_samples) * np.dot(X.T, (hX - y)) + lambda_r * (theta * mask) / n_samples
 
         return j_cost, grad
 
     def _hypothesize(self, X, theta):
         """
-
-        :param X:
-        :param theta:
-        :return:
+        Calculate the slope for the linear equation. This is also
+        used as the method which will calculate the hypothesis for
+        a linear model
+        :param X: array-like Array[n_samples, n_features] Training data
+        :param theta: array-like Vector[n_features] coefficient parameters
+        :return: Linear equation slope calculation
         """
 
         hX = sigmoid.sigmoid(np.dot(X, theta))
@@ -225,11 +247,14 @@ class Logistic(LinearMixin):
     @fitdata
     def train(self, X, y, theta=None, lambda_r=0, **kwargs):
         """
-
-        :param X:
-        :param y:
-        :param theta:
-        :return:
+        Fit training data against a linear regression model. Train data to make
+        predictions.
+        :param X: array-like Array[n_samples, n_features] Training data
+        :param y: np.ndarray Vector[n_samples] Training labels
+        :param theta: array-like Vector[n_features] coefficient parameters
+        :param lambda_r: integer Regularization parameter to reduce over-fitting
+        :param fmin: True use Newton-Gauss minimization function
+        :return: Integer minimized cost
         """
 
         if theta is not None and np.atleast_1d(theta).ndim > 1:
@@ -238,37 +263,37 @@ class Logistic(LinearMixin):
         # Set learning rate for use by gradient descent
         alpha = kwargs.get("alpha", 0.001)
         iterations = kwargs.get("iterations", self.iterations)
+        fmin = kwargs.get("fmin", True)
 
         # ensure alpha (learning rate) conforms to 0.001 < alpha < 10
         if ALPHA_MIN < alpha < ALPHA_MAX:
-            self.alpha = alpha
+            alpha = alpha
         else:
             print("Learning rate (alpha) does not fit within range 0.001 < alpha < 10 defaulting to 0.01")
-            self.alpha = 0.01
+            alpha = 0.01
 
         if self.multiclass:
             self.theta_ = self.one_vs_all(X, y, self.theta_, self.num_of_labels)
-        else:
-            # check solver type
-            self.theta, self.grad_ = fminfunc(self.cost, X, y,
+        else:  # check solver type
+            if fmin:  # default choice
+                self.theta, self.grad_ = fminfunc(self.cost, X, y,
                                                   self.theta_, alpha=alpha,
                                                   max_iter=iterations,
                                                   lambda_r=lambda_r)
-            #self.theta2_, self.grad_ = ls.gradient_descent(X, y, self.theta_, linearclass=self, alpha=alpha, max_iter=iterations)
+            else:  # this can be used but should not for logistic
+                self.theta_, self.grad_ = ls.gradient_descent(X, y, self.theta_,
+                                                              linearclass=self, alpha=alpha,
+                                                              max_iter=iterations)
 
     def predict(self, X=None, sum=False):
         """
-
-        :param X:
-        :return:
+        Predict outcomes using a linear model against training data
+        :param X: array-like Array[n_samples, n_features] Training data
+        :param sum: True return a sum value and not a vector array. False return vector array
+        :return: Array [n_samples] predicted values or integer sum value
         """
 
-        # FIXME: Need to handle how we insert the bias intercept better
-        # FIXME: if X_data and y_data present they already have a column of 1's
-        # FIXME: we need a way to check for the bias column and if it does not exist
-        # FIXME: insert
-
-        if not hasattr(self, 'theta_'):
+        if not self.fitted:
             raise RuntimeError("Instance is currently not fitted")
 
         if X is not None:
@@ -288,13 +313,12 @@ class Logistic(LinearMixin):
                 cols =  self.theta_.shape[1] - X.shape[1]
                 X = np.insert(X, 0, cols, axis=1)
 
-        if self.multiclass:
+        if self.multiclass:  # use ova prediction
             return self.predictOVA(X)
         else:
             if sum:
-                # hypothesis in logistic model: h_theta(x) = theta_zero + theta_one * x_one
+                # hypothesis in linear model: h_theta(x) = theta_zero + theta_one * x_one as sum
                 return np.sum(self._hypothesize(X, self.theta_[:X.shape[0]])).astype(np.float32)
-                #return np.sum(sigmoid.sigmoid(np.dot(X, self.theta_[:X.shape[0]])).astype(np.float32))
             else:
+                # hypothesis in linear model: h_theta(x) = theta_zero + theta_one * x_one as vector
                 return (self._hypothesize(X, self.theta_) > sigmoid.sigmoid(0)).astype(np.int)
-                #return (sigmoid.sigmoid(np.dot(X, self.theta_)) > sigmoid.sigmoid(0)).astype(np.int)
