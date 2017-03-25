@@ -218,6 +218,7 @@ def fminfunc(costfunc, X, y, initial_theta, **kwargs):
     max_iter = kwargs.get('max_iter', 400)  # max iterations to process
     max_evals = kwargs.get('max_evals', math.inf)  # max function evaluations
     grad_obj = kwargs.get('grad_obj', False)  # solve the gradient objective equation
+    lambda_r = kwargs.get('lambda_r', 0)  # get the regularization parameter
 
     tolf = 1e-7  # tolerance for the objective function value
     tolx = 1e-7  # termination tolerance for the unknown variables
@@ -244,7 +245,7 @@ def fminfunc(costfunc, X, y, initial_theta, **kwargs):
         macheps = np.spacing(np.double(1))
 
     # initialize cost
-    cost_outer, _ = costfunc(X, y, initial_theta)
+    cost_outer, _ = costfunc(X, y, initial_theta, lambda_r)
 
     # outer loop of convergence
     while(n_iter < max_iter and n_funcval < max_evals and not info):
@@ -256,7 +257,7 @@ def fminfunc(costfunc, X, y, initial_theta, **kwargs):
         grad_prev = grad
 
         # call cost function and set gradient value
-        cost_outer, grad = costfunc(X, y, initial_theta)
+        cost_outer, grad = costfunc(X, y, theta_cpy, lambda_r)
         grad = grad[:]
         n_funcval += 1
 
@@ -298,7 +299,7 @@ def fminfunc(costfunc, X, y, initial_theta, **kwargs):
                 delta = min(delta, s_norm)
 
             # call cost function and evaluate cost based on initial cost in outer loop
-            cost_inner = costfunc(X, y, theta_cpy + s)[0]
+            cost_inner = costfunc(X, y, theta_cpy + s, lambda_r)[0]
 
             if cost_inner < cost_outer:  # scaled actual reduction (average)
                 actred = (cost_outer - cost_inner) / (abs(cost_inner) + abs(cost_outer))
