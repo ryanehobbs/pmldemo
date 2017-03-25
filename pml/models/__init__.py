@@ -14,6 +14,8 @@ class LinearBase(six.with_metaclass(ABCMeta)):
     __metaclass__ = ABCMeta
 
     fitted = False
+    _X = []
+    _y = []
     def __init__(self, normalize=False, solver=None, **kwargs):
         """
         Base class for linear model regression calculations
@@ -40,6 +42,26 @@ class LinearBase(six.with_metaclass(ABCMeta)):
     def __str__(self):
 
         return self.solver
+
+    @property
+    def X_data(self):
+
+        return self._X
+
+    @X_data.setter
+    def X_data(self, value):
+
+        self._X = value
+
+    @property
+    def y_data(self):
+
+        return self._y
+
+    @y_data.setter
+    def y_data(self, value):
+
+        self._y = value
 
     @abstractmethod
     def predict(self, X):
@@ -205,7 +227,6 @@ class LinearMixin(LinearBase):
         :return:
         """
 
-        blah = np.atleast_1d(initial_theta).ndim
         if initial_theta is not None and np.atleast_1d(initial_theta).ndim < 1:
             raise ValueError("Sample weights must be 1D array or scalar")
 
@@ -219,7 +240,7 @@ class LinearMixin(LinearBase):
 
         for i in range(0, num_of_labels):
             y_idx = i + 1
-            theta, _, _ = fmincg(self.cost, X, (y == y_idx),
+            theta, _, _ = fmincg(self.cost, X, (y == i),
                                      initial_theta=initial_theta,
                                      alpha=alpha,
                                      max_iter=iterations)

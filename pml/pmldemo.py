@@ -38,7 +38,7 @@ def demo_newlogistic():
     X, y = data.load_data(source='samples/sample_data3.txt', columns=3, features=[1,2])
     logistic_model = linear.Logistic(solver='logistic', normalize=False, max_iter=400)
     logistic_model.train(X, y)
-    result = logistic_model.predict([45, 85])
+    result = logistic_model.predict([45, 85], sum=True)
     print("For a student with scores 45 and 85, we predict an admission probability of {0:.2f}%".format(result*100))
 
 def demo_logisticreg():
@@ -49,8 +49,8 @@ def demo_logisticreg():
     # map polynomial features
     preprocessor = preprocessing.PolyFeatures(degrees=6)
     X = preprocessor.mapfeatures(X)
-    logistic_model.train(X, y)
-    pred = logistic_model.predict([2, 3])
+    logistic_model.train(X, y, lambda_r=1, iterations=400)
+    pred = logistic_model.predict(logistic_model.X_data)
     print('Train Accuracy: {}'.format(np.mean(np.double(pred == y)) * 100))
 
 def demo_multiclass():
@@ -59,10 +59,11 @@ def demo_multiclass():
     X, y = data.load_matdata(file_name='samples/ex3data1.mat')
     logistic_model = linear.Logistic(solver='logistic', normalize=False, num_of_labels=10, max_iter=50, lambda_r=3)
 
+    y = preprocessing.PolyFeatures.zeroalign(y) # <---- original data mapped based on 1-based index not 0 based
     logistic_model.train(X, y, lambda_r=0.1)
 
     pred = logistic_model.predict(X)
-    print('Training Set Accuracy: {}%'.format(np.mean(np.double(pred == y)) * 10000))
+    print('Training Set Accuracy: {}%'.format(np.mean(np.double(pred == y)) * 100))
 
     # FIXME: Need to have a common way of calling into cost calc and fit and do the right thing
     # should this be class vars or should they be defined at the methods themselves
@@ -79,10 +80,10 @@ if __name__ == '__main__':
     """Main function for console application"""
 
     # plot classification data
-    #demo_preprocessing()
-    #demo_newmultilinear()
-    #demo_newlinear()
-    #demo_newlogistic()
+    demo_preprocessing()
+    demo_newmultilinear()
+    demo_newlinear()
+    demo_newlogistic()
     demo_logisticreg()
     demo_multiclass()
 

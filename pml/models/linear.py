@@ -34,6 +34,8 @@ def fitdata(func):
 
         if not klass.fitted or refit:  # call base linear class _pre_fit method
             xargs[1], xargs[2] = klass._pre_fit(X, y, theta)
+            klass.X_data = xargs[1]
+            klass.y_data = xargs[2]
 
         return func(*xargs, **kwargs)
 
@@ -196,6 +198,7 @@ class Logistic(LinearMixin):
         if not isinstance(theta, np.ndarray) and theta is not None:
             theta = np.array(theta, dtype='f')[:, None]
 
+        grad = np.zeros((theta.shape[0], 1))
         # get number of training samples
         n_samples = y.shape[0]
         # fit intercept for linear equation this is the hypothesis
@@ -204,10 +207,9 @@ class Logistic(LinearMixin):
         j_cost = (1/n_samples) * np.sum(np.multiply(-y, np.log(hX)) - np.multiply((1-y), np.log(1-hX))) + \
                  (lambda_r / (2 * n_samples) * np.sum(np.power(theta[1:], 2)))
 
-        grad = np.dot((1/n_samples) * X.T, hX - y)
-        theta[0, 0] = 0  # FIXME: this can be used in one offs but not items already fitted
-        grad = grad + np.dot((lambda_r/n_samples), theta)
-        grad = grad[:]
+        mask = np.ones((np.size(theta), 1))
+        mask[0] = 0
+        grad = np.divide(1, n_samples) * np.dot(X.T, (hX - y)) + lambda_r * (theta * mask) / n_samples
 
         return j_cost, grad
 
@@ -255,7 +257,7 @@ class Logistic(LinearMixin):
                                                   self.theta_, alpha=alpha,
                                                   max_iter=iterations,
                                                   lambda_r=lambda_r)
-            self.theta2_, self.grad_ = ls.gradient_descent(X, y, self.theta_, linearclass=self, alpha=alpha, max_iter=iterations)
+            #self.theta2_, self.grad_ = ls.gradient_descent(X, y, self.theta_, linearclass=self, alpha=alpha, max_iter=iterations)
 
     def predict(self, X, sum=False):
         """
@@ -263,6 +265,11 @@ class Logistic(LinearMixin):
         :param X:
         :return:
         """
+
+        # FIXME: Need to handle how we insert the bias intercept better
+        # FIXME: if X_data and y_data present they already have a column of 1's
+        # FIXME: we need a way to check for the bias column and if it does not exist
+        # FIXME: insert
 
         if not hasattr(self, 'theta_'):
             raise RuntimeError("Instance is currently not fitted")
@@ -283,7 +290,8 @@ class Logistic(LinearMixin):
         else:
             if sum:
                 # hypothesis in logistic model: h_theta(x) = theta_zero + theta_one * x_one
-                return np.sum(sigmoid.sigmoid(np.dot(X, self.theta_[:X.shape[0]])).astype(np.float32))
+                return np.sum(self._hypothesize(X, self.theta_[:X.shape[0]])).astype(np.float32)
+                #return np.sum(sigmoid.sigmoid(np.dot(X, self.theta_[:X.shape[0]])).astype(np.float32))
             else:
-                # p = sigmoid(X * theta) > sigmoid(0);
-                return sigmoid.sigmoid(np.dot(X, self.theta_[:X.shape[0]])) > sigmoid.sigmoid(0)
+                return (self._hypothesize(X, self.theta_) > sigmoid.sigmoid(0)).astype(np.int)
+                #return (sigmoid.sigmoid(np.dot(X, self.theta_)) > sigmoid.sigmoid(0)).astype(np.int)

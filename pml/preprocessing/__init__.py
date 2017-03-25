@@ -42,6 +42,22 @@ class PolyFeatures(object):
 
         return feature_chain
 
+    @staticmethod
+    def zeroalign(y_labels, axis=1):
+        """
+
+        :param y_labels:
+        :param alignment:
+        :return:
+        """
+
+        # by default in python we zero align because arrays are zero based indexes
+
+        r, c = np.indices((y_labels.size, 1))
+        np.subtract.at(y_labels, r, 1)
+
+        return y_labels
+
     def mapfeatures(self, X):
         """
         Creates a new feature matrix which maps all
