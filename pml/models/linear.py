@@ -34,8 +34,6 @@ def fitdata(func):
 
         if not klass.fitted or refit:  # call base linear class _pre_fit method
             xargs[1], xargs[2] = klass._pre_fit(X, y, theta)
-            klass.X_data = xargs[1]
-            klass.y_data = xargs[2]
 
         return func(*xargs, **kwargs)
 
@@ -198,7 +196,6 @@ class Logistic(LinearMixin):
         if not isinstance(theta, np.ndarray) and theta is not None:
             theta = np.array(theta, dtype='f')[:, None]
 
-        grad = np.zeros((theta.shape[0], 1))
         # get number of training samples
         n_samples = y.shape[0]
         # fit intercept for linear equation this is the hypothesis
@@ -259,7 +256,7 @@ class Logistic(LinearMixin):
                                                   lambda_r=lambda_r)
             #self.theta2_, self.grad_ = ls.gradient_descent(X, y, self.theta_, linearclass=self, alpha=alpha, max_iter=iterations)
 
-    def predict(self, X, sum=False):
+    def predict(self, X=None, sum=False):
         """
 
         :param X:
@@ -274,8 +271,14 @@ class Logistic(LinearMixin):
         if not hasattr(self, 'theta_'):
             raise RuntimeError("Instance is currently not fitted")
 
-        X = np.array(X)
-        X.reshape((X.shape[0], -1))
+        if X is not None:
+            # Always cast target param X to a numpy array
+            X = np.array(X)
+            X.reshape((X.shape[0], -1))
+        elif self.X_data is not None and X is None:
+            X = self.X_data
+        else:
+            raise Exception("Unable to qualify training data X for predictions")
 
         if self.include_bias:
             # if 0-dim array we need to add bias if necessary

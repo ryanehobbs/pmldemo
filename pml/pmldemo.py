@@ -50,7 +50,7 @@ def demo_logisticreg():
     preprocessor = preprocessing.PolyFeatures(degrees=6)
     X = preprocessor.mapfeatures(X)
     logistic_model.train(X, y, lambda_r=1, iterations=400)
-    pred = logistic_model.predict(logistic_model.X_data)
+    pred = logistic_model.predict()
     print('Train Accuracy: {}'.format(np.mean(np.double(pred == y)) * 100))
 
 def demo_multiclass():
