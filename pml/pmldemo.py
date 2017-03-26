@@ -3,6 +3,7 @@
 import data.loader as data
 import preprocessing
 import models.linear as linear
+import ml.neuralnet as nn
 
 
 def demo_preprocessing():
@@ -76,6 +77,12 @@ def demo_multiclass():
     print('Gradients: {}'.format(grad))
     print('Expected gradients: {}'.format('0.146561\n -0.548558\n 0.724722\n 1.398003\n'))
 
+def demo_neuralnetwork():
+
+    neuralnet = nn.NeuralNetwork(num_of_labels=10)
+
+    print("done")
+
 if __name__ == '__main__':
     """Main function for console application"""
 
@@ -86,5 +93,6 @@ if __name__ == '__main__':
     demo_newlogistic()
     demo_logisticreg()
     demo_multiclass()
+    demo_neuralnetwork()
 
 
