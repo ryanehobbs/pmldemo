@@ -1,7 +1,7 @@
 import scipy.io
 import pandas as pd
 
-def load_matdata(file_name, mdict=None, appendmat=True, **kwargs):
+def load_matdata(file_name, keys_only=False, mdict=None, appendmat=True, **kwargs):
     """
 
     :param file_name: Name of the mat file (do not need .mat extension if appendmat==True). Can also pass open file-like object.
@@ -12,7 +12,12 @@ def load_matdata(file_name, mdict=None, appendmat=True, **kwargs):
     """
 
     data = scipy.io.loadmat(file_name, mdict, appendmat, **kwargs)
-    return data.get('X'), data.get('y')
+    if keys_only:
+        data_keys = [x for x in data.keys() if not x.startswith('__') and not x.endswith('__')]
+        data = ((x, y) for (x, y) in data.items() if x in data_keys)
+        return (data_keys, data)
+    else:
+        return data.get('X'), data.get('y')
 
 def load_data(*args, **kwargs):
     """
