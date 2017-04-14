@@ -2,7 +2,8 @@ import data.loader as data
 import models.linear
 import numpy as np
 from pml import DataTypes
-from functools import wraps
+from mathutils.sigmoid import sigmoid
+
 
 
 class NeuralNetwork(models.linear.Logistic):
@@ -42,17 +43,37 @@ class NeuralNetwork(models.linear.Logistic):
         :return:
         """
 
-        lambda_r = kwargs.get('lambda_r', 0)
-
-        # perform feedforward calculations
-        self.ff(X, y, self.data)
-
         # unroll (temp test)
         #single_vector = self._unroll(nn_params)
         # theta neural net params should be "rolled" (converted back into the weight matrices)
         #nn_params = self._roll(single_vector, self.input_size, self.hidden_size, self.param_names)
         # when returning theta should be "unrolled" vector of the partial derivatives of the neural network.
         pass
+
+    @models.linear.fitdata
+    def train(self, X, y, **kwargs):
+        """
+
+        :param X:
+        :param y:
+        :param kwargs:
+        :return:
+        """
+
+        lambda_r = kwargs.get('lambda_r', 0)
+        alpha = kwargs.get("alpha", 0.001)
+        iterations = kwargs.get("iterations", self.iterations)
+
+        # ensure alpha (learning rate) conforms to 0.001 < alpha < 10
+        if models.linear.ALPHA_MIN < alpha < models.linear.ALPHA_MAX:
+            alpha = alpha
+        else:
+            print(
+                "Learning rate (alpha) does not fit within range 0.001 < alpha < 10 defaulting to 0.01")
+            alpha = 0.01
+
+        # perform feedforward calculations
+        self.ff(X, y, self.data)
 
     def ff(self, X, y, nn_params):
         """
@@ -66,16 +87,19 @@ class NeuralNetwork(models.linear.Logistic):
 
         # input layer (a1)
         a1 = X  # column of ones bias already added when fitted
-        z2 = a1 * nn_params['Theta1']
+        z2 = np.dot(a1, nn_params['Theta1'].transpose())
+        # FF -> Process layer 2 (hidden)
+        a2 = sigmoid(z2)
 
         # TODO: add looping layer for count of layers to process all hidden layers
         # TODO: For now (testing) just process manually and improve later
 
-
-        # FF -> Process layer 2 (hidden)
-        #a2 = sigmoid(z2);
         # add bias to second layer a2
         #a2 = [ones(size(a2, 1), 1) a2];
+        #
+        #z3 = a2 * Theta2';
+        # FF -> Process layer 3 (output)
+        #a3 = sigmoid(z3);
 
         pass
 

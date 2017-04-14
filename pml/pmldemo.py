@@ -82,7 +82,7 @@ def demo_neuralnetwork():
 
     X, y = data.load_matdata(file_name='samples/ex4data1.mat')
     neuralnet = nn.NeuralNetwork(num_of_labels=10, input_layer_size=400, hidden_layer_size=25, data_source='samples/ex4weights.mat', data_type=pml.DataTypes.MATLAB)
-    neuralnet.cost(X, y, nn_params=neuralnet.data)
+    neuralnet.train(X, y)
 
     print("done")
 
