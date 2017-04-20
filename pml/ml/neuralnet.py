@@ -2,7 +2,7 @@ import data.loader as data
 import models.linear
 import numpy as np
 from pml import DataTypes
-from mathutils.sigmoid import sigmoid
+from mathutils.sigmoid import sigmoid, sigmoid_gradient
 
 
 
@@ -178,8 +178,12 @@ class NeuralNetwork(models.linear.Logistic):
             k3 = a3 - ((np.arange(0, self.num_of_labels) == (y[i] - 1)).astype(int)).reshape(1,-1, order='F').transpose()
             # calc delta of hidden layer theta_two.T * k3 .* sigmoid(z2)
             # k2 = (Theta2' * k3) .* [1; sigmoidGradient(z2)];
+            # add bias to second layer a2
+            bias_ = np.ones((1, 1))
+            k2_grad = np.vstack((bias_, np.reshape(sigmoid_gradient(z2), (z2.shape[0], 1))))
+            k2 = np.multiply(np.dot(nn_params['Theta2'].T, k3), k2_grad)
             # accumulate the gradients for all deltas
-            # k2 = k2(2:end);
+            k2 = k2[1:]
             # Theta1_grad = Theta1_grad + k2 * a1';
             # Theta2_grad = Theta2_grad + k3 * a2';
 
