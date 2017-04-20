@@ -84,7 +84,7 @@ class Linear(LinearMixin):
         return hX
 
     @fitdata
-    def cost(self, X, y, theta=None, lambda_r=0):
+    def cost(self, X, y, theta=None, **kwargs):
         """
         Helper method that will calculate J(theta) cost and is helpful to evaluate solvers such
         as gradient descent are correctly converging. Method calculates the minimized cost function.
@@ -100,6 +100,7 @@ class Linear(LinearMixin):
 
         if not isinstance(theta, np.ndarray) and theta is not None:
             theta = np.array(theta, dtype='f')[:, None]
+        lambda_r = kwargs.get("lambda_r", 0)
 
         # get number of training samples
         n_samples = y.shape[0]
@@ -216,7 +217,7 @@ class Logistic(LinearMixin):
         super(Logistic, self).__init__(normalize, solver, **kwargs)
 
     @fitdata
-    def cost(self, X, y, theta=None, lambda_r=0, **kwargs):
+    def cost(self, X, y, theta=None, **kwargs):
         """
 
         :param X: array-like Array[n_samples, n_features] Training data
@@ -232,6 +233,7 @@ class Logistic(LinearMixin):
 
         if not isinstance(theta, np.ndarray) and theta is not None:
             theta = np.array(theta, dtype='f')[:, None]
+        lambda_r = kwargs.get("lambda_r", 0)
 
         # get number of training samples
         n_samples = y.shape[0]

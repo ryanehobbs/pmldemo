@@ -102,7 +102,7 @@ class LinearBase(six.with_metaclass(ABCMeta)):
         pass
 
     @abstractmethod
-    def cost(self, X, y, theta=None, lambda_r=0):
+    def cost(self, X, y, theta=None, **kwargs):
         """Abstract cost calculation method must be implemented in subclass"""
         pass
 

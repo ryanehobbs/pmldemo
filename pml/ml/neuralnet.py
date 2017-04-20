@@ -34,7 +34,12 @@ class NeuralNetwork(models.linear.Logistic):
         if isinstance(data_type, DataTypes) or data_type.lower() == 'matlab':
             return data.load_matdata(file_name=data_source, keys_only=True)
 
-    def cost(self, X, y, **kwargs):
+    def gradient(self):
+
+        # use this to calculate the gradients
+        pass
+
+    def cost(self, X, y, theta=None, **kwargs):
         """
 
         :param nn_params:
@@ -43,12 +48,37 @@ class NeuralNetwork(models.linear.Logistic):
         :return:
         """
 
-        # unroll (temp test)
-        #single_vector = self._unroll(nn_params)
-        # theta neural net params should be "rolled" (converted back into the weight matrices)
-        #nn_params = self._roll(single_vector, self.input_size, self.hidden_size, self.param_names)
-        # when returning theta should be "unrolled" vector of the partial derivatives of the neural network.
-        pass
+        # get number of training samples
+        n_samples = y.shape[0]
+        # get hypothesis if not supplied call base class fits intercept for linear equation
+        hX = kwargs.get("hypothesis", 0)
+        # retrieve the nn_params which are the weight samples
+        nn_params = kwargs.get("nn_params", None)
+        # retrieve the hyper parameter lambda_r for regularization calculation
+        lambda_r = kwargs.get("lambda_r", 0)
+
+        if theta:  # if calling base class get theta param if does not exist raise exception
+            if theta is not None and np.atleast_1d(theta).ndim > 1:
+                raise ValueError("Sample weights must be 1D array or scalar")
+            else:
+                super(NeuralNetwork, self).cost(X, y, theta, **kwargs)
+
+        def computereg():
+
+            for nn_theta in nn_params.values():
+                value = np.sum(np.power(nn_theta[1:], 2))
+                yield value
+
+        # re constitute original theta params (weights)
+        nn_params = self._roll(nn_params, self.input_size, self.hidden_size, self.param_names)
+        # calculate the minimized objective cost function for logistic regression
+        first_term = (1 / n_samples) * np.sum(np.sum(np.multiply((-1 * y), np.log(hX)) - np.multiply((1 - y), np.log(1 - hX))))
+        # iterate over nn_params removing their bias units before calculating regularized cost
+        second_term = (lambda_r / (2 * n_samples) * sum(computereg()))
+        # combine terms
+        j_cost = first_term + second_term
+
+        return j_cost
 
     @models.linear.fitdata
     def train(self, X, y, **kwargs):
@@ -72,14 +102,29 @@ class NeuralNetwork(models.linear.Logistic):
                 "Learning rate (alpha) does not fit within range 0.001 < alpha < 10 defaulting to 0.01")
             alpha = 0.01
 
-        # perform feedforward calculations
-        self.ff(X, y, self.data)
+        # perform feed forward calculations
+        y_label, hX = self.ff(X, y, self.data)
+        # cost calculation
+        j_cost = self.cost(X, y_label, hypothesis=hX, nn_params=self.data, lambda_r=lambda_r)
+        # perform back propagation calculations
+        self.bp(X, y, self.data)
+
+        # calculate gradients
+
+        # set cost and gradient
+        return None
 
     def ff(self, X, y, nn_params):
         """
 
         :return:
         """
+
+        # TODO: add looping layer for count of layers to process all hidden layers
+        # TODO: For now (testing) just process manually and improve later
+
+        # get size of training data
+        n_samples = np.size(X, axis=0)
 
         # re constitute original theta params (weights)
         nn_params = self._roll(nn_params, self.input_size, self.hidden_size, self.param_names)
@@ -90,26 +135,56 @@ class NeuralNetwork(models.linear.Logistic):
         z2 = np.dot(a1, nn_params['Theta1'].transpose())
         # FF -> Process layer 2 (hidden)
         a2 = sigmoid(z2)
-
-        # TODO: add looping layer for count of layers to process all hidden layers
-        # TODO: For now (testing) just process manually and improve later
-
         # add bias to second layer a2
-        #a2 = [ones(size(a2, 1), 1) a2];
-        #
-        #z3 = a2 * Theta2';
+        bias_ = np.ones((np.size(a2, 0), 1))
+        a2 = np.insert(a2, 0, bias_.T, axis=1)
+        z3 = np.dot(a2, nn_params['Theta2'].transpose())
         # FF -> Process layer 3 (output)
-        #a3 = sigmoid(z3);
+        a3 = sigmoid(z3)
 
-        pass
+        # recode y labels
+        y_label = self._recode_labels(y, n_samples, self.num_of_labels)
 
-    def bp(self):
+        return (y_label, a3)  # FIXME: this will be replaced with a deterministic value calculated via loop
+
+    def bp(self, X, y, nn_params):
         """
 
         :return:
         """
 
-        pass
+        # get size of training data
+        n_samples = np.size(X, axis=0)
+        # re constitute original theta params (weights)
+        nn_params = self._roll(nn_params, self.input_size, self.hidden_size, self.param_names)
+        layers = len(nn_params)
+
+        for i in range(0, n_samples):
+            # perform a feed forward calculation set input layers a^1 to t-th training x^t
+            a1 = np.reshape(X[i,:].transpose(), (X.shape[1], 1))
+            z2 = np.dot(nn_params['Theta1'], a1)
+            # add bias to second layer a2
+            bias_ = np.ones((1, 1))
+            # compute sigmoid of z3 and add bias row
+            a2 = np.vstack((bias_, np.reshape(sigmoid(z2), (z2.shape[0], 1))))
+            # output layer 3 this is odd why .T is not needed
+            z3 = np.dot(nn_params['Theta2'], a2)
+            # compute sigmoid of z3
+            a3 = sigmoid(z3)
+
+            # perform back propagation for each output k set 1 or 0 based on coded labels y
+            # calculate delta k3
+            # k3 = a3 - ([1:num_labels]==y(t))';
+            k3 = a3 - ((np.arange(0, self.num_of_labels) == (y[i] - 1)).astype(int)).reshape(1,-1, order='F').transpose()
+            # calc delta of hidden layer theta_two.T * k3 .* sigmoid(z2)
+            # k2 = (Theta2' * k3) .* [1; sigmoidGradient(z2)];
+            # accumulate the gradients for all deltas
+            # k2 = k2(2:end);
+            # Theta1_grad = Theta1_grad + k2 * a1';
+            # Theta2_grad = Theta2_grad + k3 * a2';
+
+
+            pass
 
     def predict(self):
         """
@@ -159,3 +234,14 @@ class NeuralNetwork(models.linear.Logistic):
             theta_params = np.append(theta_params, param[1])
 
         return np.reshape(theta_params, (theta_params.shape[0], -1))
+
+    def _recode_labels(self, y, sample_size, num_of_labels):
+
+        # create a y label vector for recoding
+        y_label = np.zeros((sample_size, num_of_labels))
+
+        # iterate over sample sizes recoding label either 0 or 1
+        for x in range(0, sample_size):
+            y_label[x, (y[x]-1)] = 1
+
+        return y_label
