@@ -1,9 +1,29 @@
 import data.loader as data
 import models.linear
 import numpy as np
-from pml import DataTypes
 from mathutils.sigmoid import sigmoid, sigmoid_gradient
+from pml import DataTypes
+from random import uniform
+from types import GeneratorType
 
+def init_weights(inputL, outputL):
+
+    # return a random initialized weights
+    return np.zeros((outputL, uniform(0, 1) + inputL))
+
+def numerical_gradient(cost_func, theta):
+
+    # TODO: add a deferred call back for the cost function parameter
+
+    tolg = 1e-4  # tolerance for the gradient check
+
+    n_grad = np.zeros(np.size(theta))
+    p_grad = np.zeros(np.size(theta))
+
+    for p in range(0, theta.size):
+        #
+        p_grad[p] = tolg
+        loss1 = cost_func()
 
 
 class NeuralNetwork(models.linear.Logistic):
@@ -39,6 +59,7 @@ class NeuralNetwork(models.linear.Logistic):
         # use this to calculate the gradients
         pass
 
+    @models.linear.fitdata
     def cost(self, X, y, theta=None, **kwargs):
         """
 
@@ -50,8 +71,6 @@ class NeuralNetwork(models.linear.Logistic):
 
         # get number of training samples
         n_samples = y.shape[0]
-        # get hypothesis if not supplied call base class fits intercept for linear equation
-        hX = kwargs.get("hypothesis", 0)
         # retrieve the nn_params which are the weight samples
         nn_params = kwargs.get("nn_params", None)
         # retrieve the hyper parameter lambda_r for regularization calculation
@@ -71,14 +90,20 @@ class NeuralNetwork(models.linear.Logistic):
 
         # re constitute original theta params (weights)
         nn_params = self._roll(nn_params, self.input_size, self.hidden_size, self.param_names)
+        # perform feed forward calculations
+        y_label, hX = self.ff(X, y, nn_params)
         # calculate the minimized objective cost function for logistic regression
-        first_term = (1 / n_samples) * np.sum(np.sum(np.multiply((-1 * y), np.log(hX)) - np.multiply((1 - y), np.log(1 - hX))))
+        first_term = (1 / n_samples) * np.sum(np.sum(np.multiply((-1 * y_label), np.log(hX)) - np.multiply((1 - y_label), np.log(1 - hX))))
         # iterate over nn_params removing their bias units before calculating regularized cost
         second_term = (lambda_r / (2 * n_samples) * sum(computereg()))
         # combine terms
         j_cost = first_term + second_term
+        # perform back propagation calculations
+        theta_gradients = self.bp(X, y, nn_params, lambda_r)
+        # Unroll gradients
+        grad = self._unroll(theta_gradients)
 
-        return j_cost
+        return j_cost, grad
 
     @models.linear.fitdata
     def train(self, X, y, **kwargs):
@@ -102,16 +127,6 @@ class NeuralNetwork(models.linear.Logistic):
                 "Learning rate (alpha) does not fit within range 0.001 < alpha < 10 defaulting to 0.01")
             alpha = 0.01
 
-        # perform feed forward calculations
-        y_label, hX = self.ff(X, y, self.data)
-        # cost calculation
-        j_cost = self.cost(X, y_label, hypothesis=hX, nn_params=self.data, lambda_r=lambda_r)
-        # perform back propagation calculations
-        self.bp(X, y, self.data)
-
-        # calculate gradients
-
-        # set cost and gradient
         return None
 
     def ff(self, X, y, nn_params):
@@ -126,8 +141,9 @@ class NeuralNetwork(models.linear.Logistic):
         # get size of training data
         n_samples = np.size(X, axis=0)
 
-        # re constitute original theta params (weights)
-        nn_params = self._roll(nn_params, self.input_size, self.hidden_size, self.param_names)
+        if not isinstance(nn_params, dict):  # needs to be rolled
+            # re constitute original theta params (weights)
+            nn_params = self._roll(nn_params, self.input_size, self.hidden_size, self.param_names)
         layers = len(nn_params)
 
         # input layer (a1)
@@ -147,28 +163,38 @@ class NeuralNetwork(models.linear.Logistic):
 
         return (y_label, a3)  # FIXME: this will be replaced with a deterministic value calculated via loop
 
-    def bp(self, X, y, nn_params):
+    def bp(self, X, y, nn_params, lambda_r):
         """
 
         :return:
         """
 
+        # TODO: add looping layer for count of layers to process all hidden layers
+        # TODO: For now (testing) just process manually and improve later
+
         # get size of training data
         n_samples = np.size(X, axis=0)
-        # re constitute original theta params (weights)
-        nn_params = self._roll(nn_params, self.input_size, self.hidden_size, self.param_names)
+        if not isinstance(nn_params, dict):  # needs to be rolled
+            # re constitute original theta params (weights)
+            nn_params = self._roll(nn_params, self.input_size, self.hidden_size, self.param_names)
+        # store ndarray of theta gradients
+        theta_gradients = {}
         layers = len(nn_params)
+
+        # create new gradient arrays
+        for name, theta in nn_params.items():
+            theta_gradients[name] = np.zeros((np.size(theta, axis=0), np.size(theta, axis=1)))
 
         for i in range(0, n_samples):
             # perform a feed forward calculation set input layers a^1 to t-th training x^t
             a1 = np.reshape(X[i,:].transpose(), (X.shape[1], 1))
-            z2 = np.dot(nn_params['Theta1'], a1)
+            z2 = np.dot(nn_params['Theta1'], a1)  # FIXME: current fixed values will need to be refactored
             # add bias to second layer a2
             bias_ = np.ones((1, 1))
             # compute sigmoid of z3 and add bias row
             a2 = np.vstack((bias_, np.reshape(sigmoid(z2), (z2.shape[0], 1))))
             # output layer 3 this is odd why .T is not needed
-            z3 = np.dot(nn_params['Theta2'], a2)
+            z3 = np.dot(nn_params['Theta2'], a2)  # FIXME: current fixed values will need to be refactored
             # compute sigmoid of z3
             a3 = sigmoid(z3)
 
@@ -176,19 +202,25 @@ class NeuralNetwork(models.linear.Logistic):
             # calculate delta k3
             # k3 = a3 - ([1:num_labels]==y(t))';
             k3 = a3 - ((np.arange(0, self.num_of_labels) == (y[i] - 1)).astype(int)).reshape(1,-1, order='F').transpose()
-            # calc delta of hidden layer theta_two.T * k3 .* sigmoid(z2)
-            # k2 = (Theta2' * k3) .* [1; sigmoidGradient(z2)];
             # add bias to second layer a2
             bias_ = np.ones((1, 1))
+            # calc delta of hidden layer theta_two.T * k3 .* sigmoid(z2)
             k2_grad = np.vstack((bias_, np.reshape(sigmoid_gradient(z2), (z2.shape[0], 1))))
-            k2 = np.multiply(np.dot(nn_params['Theta2'].T, k3), k2_grad)
+            k2 = np.multiply(np.dot(nn_params['Theta2'].T, k3), k2_grad)  # FIXME: current fixed values will need to be refactored
             # accumulate the gradients for all deltas
             k2 = k2[1:]
-            # Theta1_grad = Theta1_grad + k2 * a1';
-            # Theta2_grad = Theta2_grad + k3 * a2';
+            # calculate running sum of gradients for weight parameter  # FIXME: current fixed values will need to be refactored
+            theta_gradients['Theta1'] = theta_gradients['Theta1'] + np.multiply(k2, a1.T)
+            # calculate running sum of gradients for weight parameter
+            theta_gradients['Theta2'] = theta_gradients['Theta2'] + np.multiply(k3, a2.T)
 
+        # calculate gradients and create new gradient arrays
+        for name, theta in nn_params.items():
+            # Theta1_grad = (1/m) * Theta1_grad + (lambda/m) * [zeros(size(Theta1, 1), 1) Theta1(:,2:end)];
+            theta_term = np.hstack((np.zeros((np.size(theta, axis=0), 1)), theta[:,1:]))
+            theta_gradients[name] = np.multiply((1/n_samples), theta_gradients[name]) + np.multiply((lambda_r/n_samples), theta_term)
 
-            pass
+        return theta_gradients
 
     def predict(self):
         """
@@ -233,9 +265,12 @@ class NeuralNetwork(models.linear.Logistic):
         theta_params = np.array([])
 
         # iterate over nn_params and unroll them
-        # FIXME: this may not be efficient ravel may be a method to use
-        for param in nn_params:
-            theta_params = np.append(theta_params, param[1])
+        if isinstance(nn_params, GeneratorType):
+            for param in nn_params:
+                theta_params = np.append(theta_params, param[1])
+        elif isinstance(nn_params, dict):
+            for param in nn_params.values():
+                theta_params = np.append(theta_params, param)
 
         return np.reshape(theta_params, (theta_params.shape[0], -1))
 

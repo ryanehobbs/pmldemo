@@ -1,5 +1,8 @@
 from enum import Enum
 
+#def deferfunc(func, *args, **kwargs):
+
+
 class Models(Enum):
     LINEAR='linear'
     LOGISTIC='logistic'
@@ -15,3 +18,6 @@ class DataTypes(Enum):
     @property
     def DataType(self):
         return self.dtype
+
+
+
