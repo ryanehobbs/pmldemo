@@ -224,6 +224,31 @@ class LinearMixin(LinearBase):
 
         return self.solver
 
+    @staticmethod
+    def insert_bias(ndarray, axis=0, vector_index=0, shape_index=0, transpose=True, vstack=False):
+        """
+        Insert a column of ones "bias" value to array vector
+        :param ndarray:
+        :param axis:
+        :return:
+        """
+
+        if shape_index not in (0, 1):
+            raise Exception("Array shape index must be 0 or 1")
+
+        if vstack:
+            bias_ = np.ones((1, 1))
+            out_ndarray = np.vstack((bias_, np.reshape(ndarray, (ndarray.shape[shape_index], 1))))
+        else:
+            bias_ = np.ones((np.size(ndarray, shape_index), 1))
+            if transpose:
+                out_ndarray = np.insert(ndarray, vector_index, bias_.T, axis=axis)
+            else:
+                out_ndarray = np.insert(ndarray, vector_index, bias_, axis=axis)
+
+        return out_ndarray
+
+
     def predictN(self, X):
         """
         Method that will perform Normalized prediction.  This method assumes you are passing in

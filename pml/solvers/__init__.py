@@ -1,6 +1,6 @@
 import math
 import numpy as np
-import sys
+from pml import DeferredExec
 
 def _sumsq(X):
     """
@@ -45,9 +45,11 @@ def fmincg(costfunc, X, y, initial_theta, **kwargs):
     # line search failed flag
     ls_failed = 0
     # convert bool type in y ndarray to int values
-    y = y.astype(int)
+    if y is not None:
+        y = y.astype(int)
     # call into cost function to set up initial values
-    cost, grad = costfunc(X, y, initial_theta)
+    # ->>> cost, grad = costfunc(X, y, initial_theta)
+    cost, grad = DeferredExec.call_func(costfunc, X, y, initial_theta)
     # cost array
     costX = []
     # search direction is steepest
@@ -62,7 +64,7 @@ def fmincg(costfunc, X, y, initial_theta, **kwargs):
     grad1 = grad
     slope1 = slope
     initial_step1 = initial_step
-    theta = initial_theta
+    theta = initial_theta if initial_theta is not None else X
 
     #for i in range(0, np.abs(max_iter)):
     while i < np.abs(max_iter):
@@ -78,7 +80,8 @@ def fmincg(costfunc, X, y, initial_theta, **kwargs):
         # start the line search
         theta = theta + initial_step1 * search_direction
         # call into cost function
-        cost2, grad2 = costfunc(X, y, theta)
+        # ->>>  cost2, grad2 = costfunc(X, y, theta)
+        cost2, grad2 = DeferredExec.call_func(costfunc, X, y, theta)
         # calculate new slope
         slope2 = np.dot(grad2.T, search_direction)
         # count epoch
@@ -112,7 +115,8 @@ def fmincg(costfunc, X, y, initial_theta, **kwargs):
                 initial_step2 = max(min(initial_step2, _INT * initial_step3), (1 - _INT) * initial_step3)  # do not accept too close to limits
                 initial_step1 = initial_step1 + initial_step2  # update the step
                 theta += initial_step2 * search_direction
-                cost2, grad2 = costfunc(X, y, theta)
+                # ->>>  cost2, grad2 = costfunc(X, y, theta)
+                cost2, grad2 = DeferredExec.call_func(costfunc, X, y, theta)
                 M -= 1
                 i = i + (max_iter < 0)  # count epoch
                 slope2 = np.dot(grad2.T, search_direction)
@@ -153,7 +157,8 @@ def fmincg(costfunc, X, y, initial_theta, **kwargs):
             # update estimates
             initial_step1 += initial_step2
             theta += initial_step2 * search_direction
-            cost2, grad2 = costfunc(X, y, theta)
+            # ->>>  cost2, grad2 = costfunc(X, y, theta)
+            cost2, grad2 = DeferredExec.call_func(costfunc, X, y, theta)
             M -= 1
             i = i + (max_iter < 0)  # count epoch
             slope2 = np.dot(grad2.T, search_direction)

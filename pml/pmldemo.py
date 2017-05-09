@@ -82,7 +82,9 @@ def demo_neuralnetwork():
 
     X, y = data.load_matdata(file_name='samples/ex4data1.mat')
     neuralnet = nn.NeuralNetwork(num_of_labels=10, input_layer_size=400, hidden_layer_size=25, data_source='samples/ex4weights.mat', data_type=pml.DataTypes.MATLAB)
-    neuralnet.cost(X, y, nn_params=neuralnet.data, lambda_r=0)
+    # FIXME: remove the below call once delegates are implemented
+    #neuralnet.cost(X, y, nn_params=neuralnet.data, lambda_r=0)
+    neuralnet.train(X, y)
 
     print("done")
 
