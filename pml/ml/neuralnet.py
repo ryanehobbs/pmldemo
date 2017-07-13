@@ -94,7 +94,7 @@ class NeuralNetwork(models.linear.Logistic):
         # retrieve the nn_params which are the weight samples
         nn_params = theta if theta is not None else kwargs.get("nn_params", None)
         # retrieve the hyper parameter lambda_r for regularization calculation
-        lambda_r = kwargs.get("lambda_r", 0)
+        lambda_r = kwargs.get("lambda_r", 0.5)
 
         #if theta:  # if calling base class get theta param if does not exist raise exception
         #if theta and not np.atleast_1d(theta).ndim < 1:
@@ -149,7 +149,7 @@ class NeuralNetwork(models.linear.Logistic):
 
         # Call fmincg passing in delagate that will be used in processing
         #cost_func = DeferredExec(self.cost, X, y, nn_params=self.data, lambda_r=0)
-        fmincg(self.cost, X, y, self.data)
+        x, y, z = fmincg(self.cost, X, y, self.data)
 
 
 
@@ -320,7 +320,7 @@ class NeuralNetwork(models.linear.Logistic):
 
         return theta_gradients
 
-    def predict(self):
+    def predict(self, theta1, theta2, X):
         """
 
         :return:

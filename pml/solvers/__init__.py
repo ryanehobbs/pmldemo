@@ -30,7 +30,7 @@ def fmincg(costfunc, X, y, initial_theta, **kwargs):
     _MAX = 20      # max 20 function evaluations per line search
     _RATIO = 100   # maximum allowed slope ratio
 
-    max_iter = kwargs.get('max_iter', 400)  # max iterations to process
+    max_iter = kwargs.get('max_iter', 50)  # max iterations to process
     max_evals = kwargs.get('max_evals', math.inf)  # max function evaluations
     grad_obj = kwargs.get('grad_obj', False)  # solve the gradient objective equation
     lambda_r = kwargs.get('lambda_r', 0)  #
@@ -167,7 +167,7 @@ def fmincg(costfunc, X, y, initial_theta, **kwargs):
         if success:  # line search succeeded
             cost1 = cost2
             costX.append(cost1)
-            #print("Iteration %d | Cost: %4.6E" % (i, cost1), end='\n')
+            print("Iteration %d | Cost: %4.6E" % (i, cost1), end='\n')
             # Polack-Ribiere direction
             search_direction = (np.dot(grad2.T, grad2) - np.dot(grad1.T, grad2)) / \
                                (np.dot(grad1.T, grad1)) * search_direction - grad2
